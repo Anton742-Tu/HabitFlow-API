@@ -13,3 +13,40 @@ poetry-core = "^2.2.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 119
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+plugins = ["mypy_django_plugin.main"]
+
+[[tool.mypy.overrides]]
+module = [
+    "django.*",
+    "rest_framework.*",
+]
+ignore_missing_imports = true
+
+[tool.mypy.plugins.django-stubs]
+django_settings_module = "habitflow.settings"
