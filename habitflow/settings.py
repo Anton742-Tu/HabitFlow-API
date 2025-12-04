@@ -92,6 +92,31 @@ DATABASES = {
     }
 }
 
+# Настройки валидации
+HABIT_VALIDATION = {
+    # Максимальное время выполнения в секундах
+    "MAX_DURATION_SECONDS": 120,
+    # Минимальный интервал между выполнениями в днях
+    "MIN_FREQUENCY_DAYS": 1,
+    # Максимальный перерыв между выполнениями в днях
+    "MAX_BREAK_DAYS": 7,
+    # Разрешенные периодичности
+    "ALLOWED_FREQUENCIES": {
+        "daily": 1,
+        "weekly": 7,
+        "monthly": 30,
+    },
+    # Ограничения для приятных привычек
+    "PLEASANT_HABIT_RULES": {
+        "allow_reward": False,
+        "allow_related_habit": False,
+    },
+    # Ограничения для полезных привычек
+    "USEFUL_HABIT_RULES": {
+        "allow_only_one_of": ["reward", "related_habit"],  # Можно указать только одно
+        "related_must_be_pleasant": True,
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

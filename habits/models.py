@@ -1,27 +1,23 @@
-from datetime import timedelta
-
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Q
+from django.utils import timezone
 
-from .validators import validate_completion_frequency, validate_duration, validate_habit_consistency
+from .validators import (
+    validate_completion_frequency,
+    validate_duration,
+    validate_frequency_choice,
+    validate_habit_consistency,
+    validate_too_frequent_completion,
+)
 
 
 class Habit(models.Model):
     """Модель привычки"""
 
-    # Периодичность выполнения
-    DAILY = "daily"
-    WEEKLY = "weekly"
-    MONTHLY = "monthly"
-
-    PERIOD_CHOICES = [
-        (DAILY, "Ежедневно"),
-        (WEEKLY, "Еженедельно"),
-        (MONTHLY, "Ежемесячно"),
-    ]
+    # Периодичность выполнения (берем ключи из настроек)
+    FREQUENCY_CHOICES = [(key, key.capitalize()) for key in settings.HABIT_VALIDATION["ALLOWED_FREQUENCIES"].keys()]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="habits", verbose_name="Пользователь"
@@ -51,19 +47,19 @@ class Habit(models.Model):
         help_text="Полезная привычка, связанная с этой приятной привычкой",
     )
 
-    frequency = models.CharField(
-        max_length=10,
-        choices=PERIOD_CHOICES,
-        default=DAILY,
-        verbose_name="Периодичность",
-        help_text="Как часто выполнять привычку",
-    )
-
     reward = models.CharField(
         max_length=255,
         blank=True,
         verbose_name="Вознаграждение",
         help_text="Чем пользователь должен себя вознаградить после выполнения",
+    )
+
+    frequency = models.CharField(
+        max_length=10,
+        choices=FREQUENCY_CHOICES,
+        default="daily",
+        verbose_name="Периодичность",
+        help_text="Как часто выполнять привычку",
     )
 
     duration = models.PositiveIntegerField(
@@ -85,11 +81,9 @@ class Habit(models.Model):
         verbose_name_plural = "Привычки"
         ordering = ["time"]
         constraints = [
-            models.CheckConstraint(name="duration_max_120_seconds", condition=models.Q(duration__lte=120)),
-            # Ограничение: нельзя одновременно указывать и связанную привычку и вознаграждение
             models.CheckConstraint(
-                name="exclusive_reward_or_related",
-                condition=~(models.Q(related_habit__isnull=False) & models.Q(reward__gt="")),
+                name="duration_max_120_seconds",
+                condition=models.Q(duration__lte=settings.HABIT_VALIDATION["MAX_DURATION_SECONDS"]),
             ),
             # Ограничение: у приятной привычки не может быть вознаграждения
             models.CheckConstraint(
@@ -110,31 +104,15 @@ class Habit(models.Model):
         # Проверяем согласованность полей
         validate_habit_consistency(self)
 
-        # Проверяем, что связанная привычка приятная
-        if self.related_habit and not self.related_habit.is_pleasant:
-            raise ValidationError("Связанная привычка должна быть приятной привычкой.")
+        # Проверяем выбор периодичности
+        validate_frequency_choice(self.frequency)
 
         super().clean()
 
-    def save(self, *args, **kwargs):
-        """Переопределяем save для автоматической валидации"""
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-    @property
-    def full_description(self):
-        """Генерация полного описания привычки в формате из книги"""
-        return f"Я буду {self.action.lower()} в {self.time.strftime('%H:%M')} в {self.place}"
-
     @property
     def frequency_days(self):
-        """Возвращает периодичность в днях"""
-        frequency_map = {
-            "daily": 1,
-            "weekly": 7,
-            "monthly": 30,
-        }
-        return frequency_map.get(self.frequency, 1)
+        """Возвращает периодичность в днях из настроек"""
+        return settings.HABIT_VALIDATION["ALLOWED_FREQUENCIES"].get(self.frequency, 1)
 
     def can_be_completed_today(self):
         """Можно ли выполнить привычку сегодня (проверка по периодичности)"""
@@ -176,8 +154,12 @@ class HabitCompletion(models.Model):
 
     def clean(self):
         """Валидация выполнения привычки"""
-        # Проверяем, что привычка не выполняется слишком редко
-        validate_completion_frequency(self.habit, self.completed_at)
+        if not self.pk:  # Только при создании нового выполнения
+            # Проверяем, что привычка не выполняется слишком редко
+            validate_completion_frequency(self.habit, self.completed_at)
+
+            # Проверяем, что привычка не выполняется слишком часто
+            validate_too_frequent_completion(self.habit, self.completed_at)
 
         super().clean()
 
@@ -186,8 +168,12 @@ class HabitCompletion(models.Model):
         if not self.pk:  # Только при создании нового выполнения
             # Проверяем, можно ли выполнять привычку по периодичности
             if not self.habit.can_be_completed_today():
+                min_interval = self.habit.frequency_days
+                last_completion = self.habit.completions.latest("completed_at")
+                days_since_last = (timezone.now() - last_completion.completed_at).days
+
                 raise ValidationError(
-                    f"Привычку можно выполнять раз в {self.habit.frequency_days} дней. " f"Слишком часто!"
+                    f"Привычку можно выполнять раз в {min_interval} дней. " f"Прошло только {days_since_last} дней."
                 )
 
         self.full_clean()
