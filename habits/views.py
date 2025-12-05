@@ -6,7 +6,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from .models import Habit, HabitCompletion
-from .permissions import IsOwnerOrPublicReadOnly
+from .permissions import HabitCompletionPermission, HabitPermission
 from .serializers import HabitCompletionSerializer, HabitSerializer, PublicHabitSerializer
 
 
@@ -23,13 +23,14 @@ class HabitViewSet(viewsets.ModelViewSet):
     """
     ViewSet для управления привычками.
 
-    Пользователь видит только свои привычки и публичные привычки других пользователей.
-    Пагинация: 5 привычек на страницу.
+    Права доступа:
+    - Каждый пользователь имеет доступ только к своим привычкам по механизму CRUD
+    - Пользователь может видеть список публичных привычек без возможности редактировать или удалять
     """
 
     queryset = Habit.objects.all()
     serializer_class = HabitSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrPublicReadOnly]
+    permission_classes = [HabitPermission]
     pagination_class = StandardPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["is_pleasant", "frequency", "is_public"]
@@ -40,9 +41,13 @@ class HabitViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Возвращает queryset в зависимости от пользователя.
-        Пользователь видит:
-        1. Все свои привычки
-        2. Публичные привычки других пользователей
+
+        Правила:
+        1. Аутентифицированный пользователь видит:
+           - Все свои привычки (полный доступ)
+           - Публичные привычки других пользователей (только чтение)
+        2. Неаутентифицированный пользователь видит:
+           - Только публичные привычки (только чтение)
         """
         user = self.request.user
 
@@ -52,14 +57,19 @@ class HabitViewSet(viewsets.ModelViewSet):
                 Habit.objects.filter(models.Q(user=user) | models.Q(is_public=True))
                 .distinct()
                 .select_related("user", "related_habit")
+                .prefetch_related("completions")
             )
 
         # Для неаутентифицированных пользователей - только публичные привычки
-        return Habit.objects.filter(is_public=True).select_related("user")
+        return Habit.objects.filter(is_public=True).select_related("user").prefetch_related("completions")
 
-    @action(detail=True, methods=["post"])
+    def perform_create(self, serializer):
+        """При создании привычки автоматически устанавливаем владельца"""
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def complete(self, request, pk=None):
-        """Отметить выполнение привычки"""
+        """Отметить выполнение привычки (только для владельца)"""
         habit = self.get_object()
 
         # Проверяем, что привычка принадлежит пользователю
@@ -88,21 +98,28 @@ class HabitViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def public(self, request):
-        """Получить только публичные привычки (без пагинации или с другой пагинацией)"""
+        """
+        Получить только публичные привычки.
+        Доступно всем пользователям (включая неаутентифицированных).
+        """
         public_habits = Habit.objects.filter(is_public=True).select_related("user")
 
-        # Используем ту же пагинацию, но можно настроить отдельно
+        # Используем пагинацию
         page = self.paginate_queryset(public_habits)
         if page is not None:
+            # Используем PublicHabitSerializer который теперь включает is_public
             serializer = PublicHabitSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
         serializer = PublicHabitSerializer(public_habits, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def my_habits(self, request):
-        """Получить только свои привычки"""
+        """
+        Получить только свои привычки.
+        Только для аутентифицированных пользователей.
+        """
         my_habits = Habit.objects.filter(user=request.user).select_related("related_habit")
 
         # Используем пагинацию
@@ -114,18 +131,54 @@ class HabitViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(my_habits, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["patch"], permission_classes=[permissions.IsAuthenticated])
+    def toggle_public(self, request, pk=None):
+        """
+        Переключить статус публичности привычки.
+        Только для владельца.
+        """
+        habit = self.get_object()
+
+        # Проверяем, что пользователь - владелец
+        if habit.user != request.user:
+            return Response(
+                {"error": "Вы не можете изменять статус публичности чужих привычек."}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Меняем статус публичности
+        habit.is_public = not habit.is_public
+        habit.save()
+
+        return Response(
+            {
+                "id": habit.id,
+                "is_public": habit.is_public,
+                "message": f'Привычка теперь {"публичная" if habit.is_public else "приватная"}',
+            }
+        )
+
 
 class HabitCompletionViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления выполнениями привычек"""
+    """
+    ViewSet для управления выполнениями привычек.
+
+    Права доступа:
+    - Только владелец привычки может создавать/просматривать/удалять выполнения
+    """
 
     queryset = HabitCompletion.objects.all()
     serializer_class = HabitCompletionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [HabitCompletionPermission]
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        """Пользователь видит только выполнения своих привычек"""
-        return HabitCompletion.objects.filter(habit__user=self.request.user).select_related("habit")
+        """
+        Пользователь видит только выполнения своих привычек.
+        """
+        if self.request.user.is_authenticated:
+            return HabitCompletion.objects.filter(habit__user=self.request.user).select_related("habit")
+
+        return HabitCompletion.objects.none()
 
     def perform_create(self, serializer):
         """При создании проверяем, что привычка принадлежит пользователю"""

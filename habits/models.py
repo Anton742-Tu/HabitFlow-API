@@ -124,6 +124,17 @@ class Habit(models.Model):
 
         return days_since_last >= self.frequency_days
 
+    @property
+    def full_description(self):
+        """Генерация полного описания привычки в формате из книги"""
+        try:
+            time_str = self.time.strftime("%H:%M") if self.time else "??:??"
+            return f"Я буду {self.action.lower()} в {time_str} в {self.place}"
+        except AttributeError:
+            # Если каких-то атрибутов нет (например, в тестах)
+            return (f"Я буду {getattr(self, 'action', 'действие')} в {getattr(self, 'time', 'время')}/n"
+                    f"в {getattr(self, 'place', 'место')}")
+
 
 class HabitCompletion(models.Model):
     """Модель для отслеживания выполнения привычек"""

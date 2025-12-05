@@ -43,7 +43,7 @@ class HabitSerializer(serializers.ModelSerializer):
         queryset=Habit.objects.filter(is_pleasant=True), required=False, allow_null=True
     )
     completions = HabitCompletionSerializer(many=True, read_only=True)
-    full_description = serializers.CharField(read_only=True)
+    full_description = serializers.SerializerMethodField()  # И здесь тоже исправляем
 
     class Meta:
         model = Habit
@@ -64,7 +64,11 @@ class HabitSerializer(serializers.ModelSerializer):
             "completions",
             "full_description",
         ]
-        read_only_fields = ["id", "user", "created_at", "updated_at", "full_description"]
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
+
+    def get_full_description(self, obj):
+        """Метод для получения full_description из модели"""
+        return obj.full_description
 
     def validate(self, data):
         """Валидация данных привычки"""
@@ -96,8 +100,24 @@ class PublicHabitSerializer(serializers.ModelSerializer):
     """Сериализатор для публичных привычек (ограниченные поля)"""
 
     user = UserSerializer(read_only=True)
+    full_description = serializers.SerializerMethodField()  # Используем SerializerMethodField
 
     class Meta:
         model = Habit
-        fields = ["id", "user", "place", "time", "action", "frequency", "duration", "created_at", "full_description"]
+        fields = [
+            "id",
+            "user",
+            "place",
+            "time",
+            "action",
+            "frequency",
+            "duration",
+            "created_at",
+            "full_description",
+            "is_public",
+        ]
         read_only_fields = fields
+
+    def get_full_description(self, obj):
+        """Метод для получения full_description из модели"""
+        return obj.full_description
