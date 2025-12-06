@@ -1,23 +1,25 @@
 """
 Простой работающий тест без зависимостей
 """
+
 import os
 import sys
-import django
 from pathlib import Path
+
+import django
 
 # Добавляем путь к проекту
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 # Настраиваем Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'test_config')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "test_config")
 
 # Инициализируем Django
 django.setup()
 
-from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 
 User = get_user_model()
 
@@ -28,14 +30,10 @@ class SimpleWorkingTest(TestCase):
     def test_create_user(self):
         """Тест создания пользователя"""
         print("1. Создаем пользователя...")
-        user = User.objects.create_user(
-            username='testuser',
-            password='testpass123',
-            email='test@example.com'
-        )
+        user = User.objects.create_user(username="testuser", password="testpass123", email="test@example.com")
 
-        self.assertEqual(user.username, 'testuser')
-        self.assertEqual(user.email, 'test@example.com')
+        self.assertEqual(user.username, "testuser")
+        self.assertEqual(user.email, "test@example.com")
         print(f"   ✅ Пользователь создан: {user.username}")
 
     def test_user_count(self):
@@ -43,8 +41,8 @@ class SimpleWorkingTest(TestCase):
         print("2. Считаем пользователей...")
 
         # Создаем несколько пользователей
-        User.objects.create_user('user1', 'user1@test.com', 'pass1')
-        User.objects.create_user('user2', 'user2@test.com', 'pass2')
+        User.objects.create_user("user1", "user1@test.com", "pass1")
+        User.objects.create_user("user2", "user2@test.com", "pass2")
 
         count = User.objects.count()
         print(f"   ✅ Пользователей в базе: {count}")
@@ -57,7 +55,7 @@ class SimpleWorkingTest(TestCase):
         print("   ✅ 1 + 1 = 2 ✓")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import unittest
 
     print("=" * 50)

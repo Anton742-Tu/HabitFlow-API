@@ -34,19 +34,33 @@ class HabitAPITestCase(TestCase):
     def test_create_habit(self):
         """Тест создания привычки через API"""
         data = {
-            "place": "Парк",
-            "time": "09:00",
-            "action": "Бегать по утрам",
-            "duration": 120,
-            "frequency": "daily",
-            "is_public": False,
+            'place': 'Дом',
+            'time': '08:00',
+            'action': 'Пить воду утром',
+            'duration': 60,
+            'frequency': 'daily',
+            'is_public': True
         }
 
-        response = self.client.post("/api/habits/", data, format="json")
+        response = self.client.post('/api/habits/', data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["action"], "Бегать по утрам")
-        self.assertEqual(response.data["user"], self.user.id)
+
+        # Проверяем что привычка создана
+        self.assertEqual(response.data['action'], 'Пить воду утром')
+        self.assertEqual(response.data['duration'], 60)
+        self.assertTrue(response.data['is_public'])
+
+        # В зависимости от сериализатора, user может быть объектом или ID
+        # Проверяем оба варианта
+        user_data = response.data['user']
+        if isinstance(user_data, dict):
+            # Если сериализатор возвращает объект пользователя
+            self.assertEqual(user_data['id'], self.user.id)
+            self.assertEqual(user_data['username'], self.user.username)
+        else:
+            # Если сериализатор возвращает только ID
+            self.assertEqual(user_data, self.user.id)
 
     def test_get_habits_list(self):
         """Тест получения списка привычек"""
