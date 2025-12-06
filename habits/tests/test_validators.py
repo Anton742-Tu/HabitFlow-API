@@ -1,12 +1,13 @@
-from django.test import TestCase
+from datetime import time
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from datetime import time
+from django.test import TestCase
+
 from habits.models import Habit
 from habits.validators import (
     validate_duration,
     validate_habit_consistency,
-    validate_completion_frequency,
 )
 
 User = get_user_model()
@@ -16,10 +17,7 @@ class ValidatorsTestCase(TestCase):
     """Тесты для валидаторов"""
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
+        self.user = User.objects.create_user(username="testuser", password="testpass123")
 
     def test_validate_duration(self):
         """Тест валидации времени выполнения"""
@@ -45,23 +43,18 @@ class ValidatorsTestCase(TestCase):
         """Тест валидации согласованности привычки"""
         # Создаем приятную привычку
         pleasant_habit = Habit.objects.create(
-            user=self.user,
-            place='Диван',
-            time=time(20, 0),
-            action='Приятная привычка',
-            duration=60,
-            is_pleasant=True
+            user=self.user, place="Диван", time=time(20, 0), action="Приятная привычка", duration=60, is_pleasant=True
         )
 
         # Тест 1: Приятная привычка с вознаграждением (должна быть ошибка)
         habit_with_reward = Habit(
             user=self.user,
-            place='Дом',
+            place="Дом",
             time=time(8, 0),
-            action='Тест',
+            action="Тест",
             duration=60,
             is_pleasant=True,
-            reward='Шоколадка'
+            reward="Шоколадка",
         )
 
         with self.assertRaises(ValidationError):
@@ -70,13 +63,13 @@ class ValidatorsTestCase(TestCase):
         # Тест 2: Полезная привычка с и reward и related_habit (должна быть ошибка)
         habit_with_both = Habit(
             user=self.user,
-            place='Дом',
+            place="Дом",
             time=time(8, 0),
-            action='Тест',
+            action="Тест",
             duration=60,
             is_pleasant=False,
-            reward='Награда',
-            related_habit=pleasant_habit
+            reward="Награда",
+            related_habit=pleasant_habit,
         )
 
         with self.assertRaises(ValidationError):
@@ -85,12 +78,12 @@ class ValidatorsTestCase(TestCase):
         # Тест 3: Корректная привычка с reward (без ошибки)
         habit_correct_with_reward = Habit(
             user=self.user,
-            place='Дом',
+            place="Дом",
             time=time(8, 0),
-            action='Тест',
+            action="Тест",
             duration=60,
             is_pleasant=False,
-            reward='Награда'
+            reward="Награда",
         )
 
         try:
