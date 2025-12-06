@@ -3,11 +3,9 @@
 *.pot
 *.pyc
 __pycache__/
-local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
-staticfiles/
 
 # Virtual Environment
 venv/
@@ -64,3 +62,14 @@ MANIFEST
 htmlcov/
 .pytest_cache/
 .tox/
+
+# Coverage
+.coverage.*
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
