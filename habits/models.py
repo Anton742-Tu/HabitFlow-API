@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from .validators import (
@@ -132,8 +133,10 @@ class Habit(models.Model):
             return f"Я буду {self.action.lower()} в {time_str} в {self.place}"
         except AttributeError:
             # Если каких-то атрибутов нет (например, в тестах)
-            return (f"Я буду {getattr(self, 'action', 'действие')} в {getattr(self, 'time', 'время')}/n"
-                    f"в {getattr(self, 'place', 'место')}")
+            return (
+                f"Я буду {getattr(self, 'action', 'действие')} в {getattr(self, 'time', 'время')}/n"
+                f"в {getattr(self, 'place', 'место')}"
+            )
 
 
 class HabitCompletion(models.Model):

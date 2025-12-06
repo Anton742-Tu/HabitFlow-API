@@ -5,13 +5,9 @@ from django.views import View
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
 
 
-# Класс для корневой страницы прямо в urls.py
+# Класс для корневой страницы
 class APIRootView(View):
     def get(self, request):
         return JsonResponse(
@@ -19,16 +15,11 @@ class APIRootView(View):
                 "message": "Добро пожаловать в HabitFlow API!",
                 "version": "1.0.0",
                 "endpoints": {
-                    "api_docs": "/swagger/",
-                    "api_docs_redoc": "/redoc/",
+                    "users": "/api/users/",
                     "habits": "/api/habits/",
-                    "completions": "/api/completions/",
-                    "token": "/api/token/",
-                    "token_refresh": "/api/token/refresh/",
+                    "docs": "/swagger/",
                     "admin": "/admin/",
                 },
-                "authentication": "JWT Token based",
-                "pagination": "5 items per page for habits",
             }
         )
 
@@ -50,11 +41,10 @@ schema_view = get_schema_view(
 urlpatterns = [
     path("", APIRootView.as_view(), name="api-root"),
     path("admin/", admin.site.urls),
-    # API документация
+    # Документация
     path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
     path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
-    # API
-    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    # API приложений
+    path("api/users/", include("users.urls")),
     path("api/", include("habits.urls")),
 ]
