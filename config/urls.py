@@ -31,7 +31,7 @@ schema_view = get_schema_view(
         default_version="v1",
         description="API для трекера полезных привычек",
         terms_of_service="https://www.google.com/policies/terms/",
-        contact=openapi.Contact(email="contact@habitflow.local"),
+        contact=openapi.Contact(email="contact@config.local"),
         license=openapi.License(name="MIT License"),
     ),
     public=True,

@@ -31,21 +31,7 @@
 6. ⏰ **Нельзя не выполнять привычку более 7 дней**
 
 ## 🏗️ Архитектура
-HabitFlow-API/
-├── habits/ # Всё связанное с привычками
-│ ├── models.py # Модели Habit и HabitCompletion
-│ ├── views.py # ViewSet'ы для API
-│ ├── serializers.py # Сериализаторы
-│ ├── validators.py # Валидаторы бизнес-логики
-│ └── tests/ # Тесты
-├── users/ # Аутентификация и профили
-│ ├── serializers.py # UserRegister, UserProfile
-│ ├── views.py # Register, Login, Profile views
-│ └── tests/ # Тесты аутентификации
-└── habitflow/ # Конфигурация проекта
-├── settings.py # Настройки (dev/prod)
-└── urls.py # Маршрутизация
-
+![img.png](img.png)
 
 ## 🚀 Быстрый старт
 
@@ -107,7 +93,7 @@ python manage.py migrate
 python manage.py runserver
 
 # Production (с Gunicorn)
-gunicorn habitflow.wsgi:application --bind 0.0.0.0:8000
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
 ```
 ### 4. Создание тестовых данных
 ```bash

@@ -6,6 +6,6 @@ from dotenv import load_dotenv
 # Загружаем переменные окружения
 load_dotenv()
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "habitflow.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 application = get_wsgi_application()
