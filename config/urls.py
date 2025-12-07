@@ -47,4 +47,6 @@ urlpatterns = [
     # API приложений
     path("api/users/", include("users.urls")),
     path("api/", include("habits.urls")),
+    # Телеграмм Bot
+    path("telegram/", include("telegram_bot.urls")),
 ]

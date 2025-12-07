@@ -1,14 +1,14 @@
-from django.http import HttpResponse
 import csv
 import json
-from django.db.models import Count, Avg, Q, F, ExpressionWrapper, DurationField
-from django.utils import timezone
-from datetime import timedelta, datetime
-from rest_framework.decorators import action
-from rest_framework import serializers
+from datetime import date, datetime, timedelta
+
 from django.db import models
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, permissions, status, viewsets
+from django.db.models import Count, DurationField, ExpressionWrapper, F
+from django.http import HttpResponse
+from django.utils import timezone
+from django_filters import BooleanFilter, DateFilter, NumberFilter
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
@@ -16,26 +16,63 @@ from rest_framework.response import Response
 from .models import Habit, HabitCompletion
 from .permissions import HabitCompletionPermission, HabitPermission
 from .serializers import HabitCompletionSerializer, HabitSerializer, PublicHabitSerializer
-from django_filters import rest_framework as filters
-from datetime import date
 
 
-class HabitFilter(filters.FilterSet):
+def filter_has_completions_today(queryset, name, value):
+    """Фильтр по наличию выполнений сегодня"""
+    today = date.today()
+
+    if value:
+        # Привычки, которые были выполнены сегодня
+        return queryset.filter(completions__completed_at__date=today).distinct()
+    else:
+        # Привычки, которые не выполнялись сегодня
+        return queryset.exclude(completions__completed_at__date=today).distinct()
+
+
+def filter_min_completions(queryset, name, value):
+    """Фильтр по минимальному количеству выполнений"""
+    from django.db.models import Count
+
+    return queryset.annotate(completion_count=Count("completions")).filter(completion_count__gte=value)
+
+
+def filter_last_completed_before(queryset, name, value):
+    """Фильтр по последнему выполнению до указанной даты"""
+    return (
+        queryset.filter(completions__completed_at__date__lt=value)
+        .annotate(last_completion=models.Max("completions__completed_at"))
+        .filter(last_completion__isnull=False)
+    )
+
+
+def filter_last_completed_after(queryset, name, value):
+    """Фильтр по последнему выполнению после указанной даты"""
+    return (
+        queryset.filter(completions__completed_at__date__gte=value)
+        .annotate(last_completion=models.Max("completions__completed_at"))
+        .filter(last_completion__isnull=False)
+    )
+
+
+class HabitFilter(FilterSet):
     """Фильтр для привычек с дополнительными полями"""
 
-    date_from = filters.DateFilter(field_name='created_at', lookup_expr='gte')
-    date_to = filters.DateFilter(field_name='created_at', lookup_expr='lte')
-    has_completions_today = filters.BooleanFilter(method='filter_has_completions_today')
-    min_completions = filters.NumberFilter(method='filter_min_completions')
-    last_completed_before = filters.DateFilter(method='filter_last_completed_before')
-    last_completed_after = filters.DateFilter(method='filter_last_completed_after')
+    date_from = DateFilter(field_name="created_at", lookup_expr="gte")  # ⬅️ DateFilter из django_filters
+    date_to = DateFilter(field_name="created_at", lookup_expr="lte")
+    has_completions_today = BooleanFilter(method="filter_has_completions_today")
+    min_completions = NumberFilter(method="filter_min_completions")
 
     class Meta:
         model = Habit
         fields = [
-            'is_pleasant', 'frequency', 'is_public',
-            'date_from', 'date_to', 'has_completions_today',
-            'min_completions'
+            "is_pleasant",
+            "frequency",
+            "is_public",
+            "date_from",
+            "date_to",
+            "has_completions_today",
+            "min_completions",
         ]
 
     def filter_has_completions_today(self, queryset, name, value):
@@ -44,36 +81,16 @@ class HabitFilter(filters.FilterSet):
 
         if value:
             # Привычки, которые были выполнены сегодня
-            return queryset.filter(
-                completions__completed_at__date=today
-            ).distinct()
+            return queryset.filter(completions__completed_at__date=today).distinct()
         else:
             # Привычки, которые не выполнялись сегодня
-            return queryset.exclude(
-                completions__completed_at__date=today
-            ).distinct()
+            return queryset.exclude(completions__completed_at__date=today).distinct()
 
     def filter_min_completions(self, queryset, name, value):
         """Фильтр по минимальному количеству выполнений"""
-        return queryset.annotate(
-            completion_count=Count('completions')
-        ).filter(completion_count__gte=value)
+        from django.db.models import Count
 
-    def filter_last_completed_before(self, queryset, name, value):
-        """Фильтр по последнему выполнению до указанной даты"""
-        return queryset.filter(
-            completions__completed_at__date__lt=value
-        ).annotate(
-            last_completion=models.Max('completions__completed_at')
-        ).filter(last_completion__isnull=False)
-
-    def filter_last_completed_after(self, queryset, name, value):
-        """Фильтр по последнему выполнению после указанной даты"""
-        return queryset.filter(
-            completions__completed_at__date__gte=value
-        ).annotate(
-            last_completion=models.Max('completions__completed_at')
-        ).filter(last_completion__isnull=False)
+        return queryset.annotate(completion_count=Count("completions")).filter(completion_count__gte=value)
 
 
 class StandardPagination(PageNumberPagination):
@@ -98,20 +115,10 @@ class HabitViewSet(viewsets.ModelViewSet):
     serializer_class = HabitSerializer
     permission_classes = [HabitPermission]
     pagination_class = StandardPagination
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter
-    ]
-    filterset_fields = [
-        'is_pleasant', 'frequency', 'is_public',
-        'date_from', 'date_to', 'has_completions_today',
-        'min_completions', 'last_completed_before', 'last_completed_after'
-    ]
-    search_fields = ["action", "place", "reward"]
+    filter_backends = [DjangoFilterBackend]  # Временно убираем SearchFilter
+    filterset_class = HabitFilter
     ordering_fields = ["time", "created_at", "updated_at"]
     ordering = ["time"]
-    filterset_class = HabitFilter
 
     def get_queryset(self):
         """
@@ -233,6 +240,214 @@ class HabitViewSet(viewsets.ModelViewSet):
         )
 
 
+def _calculate_completion_stats(user):
+    """Рассчет статистики выполнения привычек"""
+    habits = Habit.objects.filter(user=user)
+
+    stats = {"total_expected": 0, "total_completed": 0, "by_frequency": {}, "by_habit": []}
+
+    for habit in habits:
+        # Рассчитываем ожидаемое количество выполнений
+        days_active = (timezone.now() - habit.created_at).days + 1
+        expected = days_active / habit.frequency_days
+
+        # Фактическое количество выполнений
+        actual = habit.completions.count()
+
+        # Процент выполнения для этой привычки
+        percentage = (actual / expected * 100) if expected > 0 else 0
+
+        stats["total_expected"] += expected
+        stats["total_completed"] += actual
+
+        # Группировка по частоте
+        freq = habit.frequency
+        if freq not in stats["by_frequency"]:
+            stats["by_frequency"][freq] = {"count": 0, "completed": 0, "percentage": 0}
+
+        stats["by_frequency"][freq]["count"] += 1
+        stats["by_frequency"][freq]["completed"] += actual
+
+        # Статистика по конкретной привычке
+        stats["by_habit"].append(
+            {
+                "id": habit.id,
+                "action": habit.action,
+                "expected": round(expected, 1),
+                "actual": actual,
+                "percentage": round(percentage, 1),
+                "frequency": habit.frequency,
+            }
+        )
+
+    # Общий процент выполнения
+    stats["overall_percentage"] = round(
+        (stats["total_completed"] / stats["total_expected"] * 100) if stats["total_expected"] > 0 else 0, 1
+    )
+
+    # Рассчет процентов для групп по частоте
+    for freq in stats["by_frequency"]:
+        freq_stats = stats["by_frequency"][freq]
+        freq_stats["percentage"] = round(
+            (freq_stats["completed"] / (freq_stats["count"] * 30) * 100) if freq_stats["count"] > 0 else 0, 1
+        )
+
+    return stats
+
+
+def _calculate_current_streak(user):
+    """Рассчет текущей серии последовательных дней с выполнением привычек"""
+    # Получаем все выполнения за последние 30 дней
+    month_ago = timezone.now() - timedelta(days=30)
+
+    completion_dates = (
+        HabitCompletion.objects.filter(habit__user=user, completed_at__gte=month_ago)
+        .dates("completed_at", "day")
+        .order_by("-completed_at")
+    )
+
+    if not completion_dates:
+        return 0
+
+    # Находим самую длинную последовательность дней подряд
+    streak = 1
+    current_date = completion_dates[0]
+
+    for i in range(1, len(completion_dates)):
+        prev_date = completion_dates[i]
+        days_diff = (current_date - prev_date).days
+
+        if days_diff == 1:
+            streak += 1
+            current_date = prev_date
+        else:
+            break
+
+    return streak
+
+
+def _calculate_habit_streak(habit):
+    """Рассчет текущей серии выполнения конкретной привычки"""
+    completions = habit.completions.order_by("-completed_at")
+
+    if not completions.exists():
+        return 0
+
+    streak = 0
+    current_date = completions.first().completed_at.date()
+
+    for completion in completions:
+        completion_date = completion.completed_at.date()
+
+        if completion_date == current_date:
+            continue
+
+        days_diff = (current_date - completion_date).days
+
+        if days_diff == 1:
+            streak += 1
+            current_date = completion_date
+        else:
+            break
+
+    return streak + 1  # +1 для дня первого выполнения
+
+
+def _export_to_csv(habits, user):
+    """Экспорт в CSV формат"""
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="habits_{user.username}_{datetime.now().date()}.csv"'
+
+    writer = csv.writer(response)
+
+    # Заголовки
+    writer.writerow(
+        [
+            "ID",
+            "Действие",
+            "Место",
+            "Время",
+            "Периодичность",
+            "Длительность (сек)",
+            "Приятная привычка",
+            "Вознаграждение",
+            "Связанная привычка",
+            "Публичная",
+            "Создано",
+            "Выполнений",
+        ]
+    )
+
+    # Данные
+    for habit in habits:
+        writer.writerow(
+            [
+                habit.id,
+                habit.action,
+                habit.place,
+                habit.time.strftime("%H:%M") if habit.time else "",
+                habit.frequency,
+                habit.duration,
+                "Да" if habit.is_pleasant else "Нет",
+                habit.reward or "",
+                habit.related_habit.action if habit.related_habit else "",
+                "Да" if habit.is_public else "Нет",
+                habit.created_at.strftime("%Y-%m-%d %H:%M"),
+                habit.completions.count(),
+            ]
+        )
+
+    return response
+
+
+def _export_to_json(habits, user):
+    """Экспорт в JSON формат"""
+    data = {
+        "export_date": datetime.now().isoformat(),
+        "user": {
+            "username": user.username,
+            "email": user.email,
+        },
+        "habits": [],
+    }
+
+    for habit in habits:
+        habit_data = {
+            "id": habit.id,
+            "action": habit.action,
+            "place": habit.place,
+            "time": habit.time.strftime("%H:%M") if habit.time else None,
+            "frequency": habit.frequency,
+            "duration_seconds": habit.duration,
+            "is_pleasant": habit.is_pleasant,
+            "reward": habit.reward,
+            "related_habit_id": habit.related_habit_id,
+            "is_public": habit.is_public,
+            "created_at": habit.created_at.isoformat(),
+            "updated_at": habit.updated_at.isoformat(),
+            "full_description": habit.full_description,
+            "completions": [],
+        }
+
+        # Добавляем последние 30 выполнений
+        recent_completions = habit.completions.order_by("-completed_at")[:30]
+        for completion in recent_completions:
+            habit_data["completions"].append(
+                {
+                    "completed_at": completion.completed_at.isoformat(),
+                    "is_completed": completion.is_completed,
+                    "note": completion.note,
+                }
+            )
+
+        data["habits"].append(habit_data)
+
+    response = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
+    response["Content-Disposition"] = f'attachment; filename="habits_{user.username}_{datetime.now().date()}.json"'
+
+    return response
+
+
 class HabitCompletionViewSet(viewsets.ModelViewSet):
     """
     ViewSet для управления выполнениями привычек.
@@ -245,6 +460,9 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
     serializer_class = HabitCompletionSerializer
     permission_classes = [HabitCompletionPermission]
     pagination_class = StandardPagination
+    filter_backends = [DjangoFilterBackend]
+    ordering_fields = ["completed_at"]
+    ordering = ["-completed_at"]
 
     def get_queryset(self):
         """
@@ -268,7 +486,7 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
 
         serializer.save()
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def stats(self, request):
         """Статистика выполнения привычек пользователя"""
         user = request.user
@@ -283,202 +501,103 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         today_end = today_start + timedelta(days=1)
 
         completions_today = HabitCompletion.objects.filter(
-            habit__user=user,
-            completed_at__range=[today_start, today_end]
+            habit__user=user, completed_at__range=[today_start, today_end]
         ).count()
 
         # Статистика за неделю
         week_ago = timezone.now() - timedelta(days=7)
 
-        weekly_completions = HabitCompletion.objects.filter(
-            habit__user=user,
-            completed_at__gte=week_ago
-        ).values('completed_at__date').annotate(
-            count=Count('id')
-        ).order_by('completed_at__date')
+        weekly_completions = (
+            HabitCompletion.objects.filter(habit__user=user, completed_at__gte=week_ago)
+            .values("completed_at__date")
+            .annotate(count=Count("id"))
+            .order_by("completed_at__date")
+        )
 
         # Процент выполнения привычек
-        completion_stats = self._calculate_completion_stats(user)
+        completion_stats = _calculate_completion_stats(user)
 
         # Самые успешные привычки
-        successful_habits = Habit.objects.filter(user=user).annotate(
-            completion_count=Count('completions'),
-            last_completion_date=models.Max('completions__completed_at')
-        ).order_by('-completion_count')[:5]
+        successful_habits = (
+            Habit.objects.filter(user=user)
+            .annotate(
+                completion_count=Count("completions"), last_completion_date=models.Max("completions__completed_at")
+            )
+            .order_by("-completion_count")[:5]
+        )
 
         successful_habits_data = [
             {
-                'id': habit.id,
-                'action': habit.action,
-                'completion_count': habit.completion_count,
-                'last_completed': habit.last_completion_date
+                "id": habit.id,
+                "action": habit.action,
+                "completion_count": habit.completion_count,
+                "last_completed": habit.last_completion_date,
             }
             for habit in successful_habits
         ]
 
         # Привычки, требующие внимания (не выполнялись более 3 дней)
-        attention_needed = Habit.objects.filter(
-            user=user,
-            completions__isnull=False
-        ).annotate(
-            last_completion=models.Max('completions__completed_at'),
-            days_since_last=ExpressionWrapper(
-                timezone.now() - F('last_completion'),
-                output_field=DurationField()
+        attention_needed = (
+            Habit.objects.filter(user=user, completions__isnull=False)
+            .annotate(
+                last_completion=models.Max("completions__completed_at"),
+                days_since_last=ExpressionWrapper(timezone.now() - F("last_completion"), output_field=DurationField()),
             )
-        ).filter(
-            days_since_last__gt=timedelta(days=3)
-        ).values('id', 'action', 'last_completion')[:5]
-
-        return Response({
-            'summary': {
-                'total_habits': total_habits,
-                'pleasant_habits': pleasant_habits,
-                'useful_habits': useful_habits,
-                'completions_today': completions_today,
-            },
-            'completion_rate': completion_stats,
-            'weekly_completions': list(weekly_completions),
-            'successful_habits': successful_habits_data,
-            'attention_needed': list(attention_needed),
-            'current_streak': self._calculate_current_streak(user),
-        })
-
-    def _calculate_completion_stats(self, user):
-        """Рассчет статистики выполнения привычек"""
-        habits = Habit.objects.filter(user=user)
-
-        stats = {
-            'total_expected': 0,
-            'total_completed': 0,
-            'by_frequency': {},
-            'by_habit': []
-        }
-
-        for habit in habits:
-            # Рассчитываем ожидаемое количество выполнений
-            days_active = (timezone.now() - habit.created_at).days + 1
-            expected = days_active / habit.frequency_days
-
-            # Фактическое количество выполнений
-            actual = habit.completions.count()
-
-            # Процент выполнения для этой привычки
-            percentage = (actual / expected * 100) if expected > 0 else 0
-
-            stats['total_expected'] += expected
-            stats['total_completed'] += actual
-
-            # Группировка по частоте
-            freq = habit.frequency
-            if freq not in stats['by_frequency']:
-                stats['by_frequency'][freq] = {
-                    'count': 0,
-                    'completed': 0,
-                    'percentage': 0
-                }
-
-            stats['by_frequency'][freq]['count'] += 1
-            stats['by_frequency'][freq]['completed'] += actual
-
-            # Статистика по конкретной привычке
-            stats['by_habit'].append({
-                'id': habit.id,
-                'action': habit.action,
-                'expected': round(expected, 1),
-                'actual': actual,
-                'percentage': round(percentage, 1),
-                'frequency': habit.frequency
-            })
-
-        # Общий процент выполнения
-        stats['overall_percentage'] = round(
-            (stats['total_completed'] / stats['total_expected'] * 100)
-            if stats['total_expected'] > 0 else 0,
-            1
+            .filter(days_since_last__gt=timedelta(days=3))
+            .values("id", "action", "last_completion")[:5]
         )
 
-        # Рассчет процентов для групп по частоте
-        for freq in stats['by_frequency']:
-            freq_stats = stats['by_frequency'][freq]
-            freq_stats['percentage'] = round(
-                (freq_stats['completed'] / (freq_stats['count'] * 30) * 100)
-                if freq_stats['count'] > 0 else 0,
-                1
-            )
+        return Response(
+            {
+                "summary": {
+                    "total_habits": total_habits,
+                    "pleasant_habits": pleasant_habits,
+                    "useful_habits": useful_habits,
+                    "completions_today": completions_today,
+                },
+                "completion_rate": completion_stats,
+                "weekly_completions": list(weekly_completions),
+                "successful_habits": successful_habits_data,
+                "attention_needed": list(attention_needed),
+                "current_streak": _calculate_current_streak(user),
+            }
+        )
 
-        return stats
-
-    def _calculate_current_streak(self, user):
-        """Рассчет текущей серии последовательных дней с выполнением привычек"""
-        # Получаем все выполнения за последние 30 дней
-        month_ago = timezone.now() - timedelta(days=30)
-
-        completion_dates = HabitCompletion.objects.filter(
-            habit__user=user,
-            completed_at__gte=month_ago
-        ).dates('completed_at', 'day').order_by('-completed_at')
-
-        if not completion_dates:
-            return 0
-
-        # Находим самую длинную последовательность дней подряд
-        streak = 1
-        current_date = completion_dates[0]
-
-        for i in range(1, len(completion_dates)):
-            prev_date = completion_dates[i]
-            days_diff = (current_date - prev_date).days
-
-            if days_diff == 1:
-                streak += 1
-                current_date = prev_date
-            else:
-                break
-
-        return streak
-
-    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def progress(self, request, pk=None):
         """Прогресс выполнения конкретной привычки"""
         habit = self.get_object()
 
         # Проверяем права доступа
         if habit.user != request.user and not habit.is_public:
-            return Response(
-                {"error": "У вас нет доступа к прогрессу этой привычки"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"error": "У вас нет доступа к прогрессу этой привычки"}, status=status.HTTP_403_FORBIDDEN)
 
         # Базовые метрики
         total_completions = habit.completions.count()
 
         # За последние 30 дней
         month_ago = timezone.now() - timedelta(days=30)
-        recent_completions = habit.completions.filter(
-            completed_at__gte=month_ago
-        ).count()
+        recent_completions = habit.completions.filter(completed_at__gte=month_ago).count()
 
         # Рассчет процента выполнения
         expected_completions = 30 / habit.frequency_days
         completion_percentage = (recent_completions / expected_completions * 100) if expected_completions > 0 else 0
 
         # Текущая серия (streak)
-        current_streak = self._calculate_habit_streak(habit)
+        current_streak = _calculate_habit_streak(habit)
 
         # График выполнения за неделю
         week_ago = timezone.now() - timedelta(days=7)
 
-        weekly_completions = habit.completions.filter(
-            completed_at__gte=week_ago
-        ).values('completed_at__date').annotate(
-            count=Count('id')
-        ).order_by('completed_at__date')
+        weekly_completions = (
+            habit.completions.filter(completed_at__gte=week_ago)
+            .values("completed_at__date")
+            .annotate(count=Count("id"))
+            .order_by("completed_at__date")
+        )
 
         # Время суток, когда чаще всего выполняется
-        completion_times = habit.completions.values_list(
-            'completed_at__hour', flat=True
-        )
+        completion_times = habit.completions.values_list("completed_at__hour", flat=True)
 
         # Медиана времени выполнения
         times_list = list(completion_times)
@@ -488,166 +607,55 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         else:
             median_time = None
 
-        return Response({
-            'habit': {
-                'id': habit.id,
-                'action': habit.action,
-                'frequency': habit.frequency,
-            },
-            'completions': {
-                'total': total_completions,
-                'recent_30_days': recent_completions,
-                'percentage': round(completion_percentage, 1),
-                'expected': round(expected_completions, 1),
-            },
-            'streak': {
-                'current': current_streak,
-                'longest': self._calculate_longest_streak(habit),
-            },
-            'weekly_data': list(weekly_completions),
-            'time_analysis': {
-                'median_hour': median_time,
-                'scheduled_time': habit.time.hour if habit.time else None,
-            },
-            'next_expected': self._calculate_next_expected_date(habit),
-        })
+        return Response(
+            {
+                "habit": {
+                    "id": habit.id,
+                    "action": habit.action,
+                    "frequency": habit.frequency,
+                },
+                "completions": {
+                    "total": total_completions,
+                    "recent_30_days": recent_completions,
+                    "percentage": round(completion_percentage, 1),
+                    "expected": round(expected_completions, 1),
+                },
+                "streak": {
+                    "current": current_streak,
+                    "longest": self._calculate_longest_streak(habit),
+                },
+                "weekly_data": list(weekly_completions),
+                "time_analysis": {
+                    "median_hour": median_time,
+                    "scheduled_time": habit.time.hour if habit.time else None,
+                },
+                "next_expected": self._calculate_next_expected_date(habit),
+            }
+        )
 
-    def _calculate_habit_streak(self, habit):
-        """Рассчет текущей серии выполнения конкретной привычки"""
-        completions = habit.completions.order_by('-completed_at')
-
-        if not completions.exists():
-            return 0
-
-        streak = 0
-        current_date = completions.first().completed_at.date()
-
-        for completion in completions:
-            completion_date = completion.completed_at.date()
-
-            if completion_date == current_date:
-                continue
-
-            days_diff = (current_date - completion_date).days
-
-            if days_diff == 1:
-                streak += 1
-                current_date = completion_date
-            else:
-                break
-
-        return streak + 1  # +1 для дня первого выполнения
-
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def export(self, request):
         """Экспорт привычек в различных форматах"""
-        format_type = request.query_params.get('format', 'json')
+        format_type = request.query_params.get("format", "json")
         user = request.user
 
-        habits = Habit.objects.filter(user=user).select_related('related_habit')
+        habits = Habit.objects.filter(user=user).select_related("related_habit")
 
-        if format_type == 'csv':
-            return self._export_to_csv(habits, user)
-        elif format_type == 'json':
-            return self._export_to_json(habits, user)
+        if format_type == "csv":
+            return _export_to_csv(habits, user)
+        elif format_type == "json":
+            return _export_to_json(habits, user)
         else:
-            return Response(
-                {'error': 'Unsupported format. Use csv or json.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Unsupported format. Use csv or json."}, status=status.HTTP_400_BAD_REQUEST)
 
-    def _export_to_csv(self, habits, user):
-        """Экспорт в CSV формат"""
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="habits_{user.username}_{datetime.now().date()}.csv"'
-
-        writer = csv.writer(response)
-
-        # Заголовки
-        writer.writerow([
-            'ID', 'Действие', 'Место', 'Время', 'Периодичность',
-            'Длительность (сек)', 'Приятная привычка', 'Вознаграждение',
-            'Связанная привычка', 'Публичная', 'Создано', 'Выполнений'
-        ])
-
-        # Данные
-        for habit in habits:
-            writer.writerow([
-                habit.id,
-                habit.action,
-                habit.place,
-                habit.time.strftime('%H:%M') if habit.time else '',
-                habit.frequency,
-                habit.duration,
-                'Да' if habit.is_pleasant else 'Нет',
-                habit.reward or '',
-                habit.related_habit.action if habit.related_habit else '',
-                'Да' if habit.is_public else 'Нет',
-                habit.created_at.strftime('%Y-%m-%d %H:%M'),
-                habit.completions.count()
-            ])
-
-        return response
-
-    def _export_to_json(self, habits, user):
-        """Экспорт в JSON формат"""
-        data = {
-            'export_date': datetime.now().isoformat(),
-            'user': {
-                'username': user.username,
-                'email': user.email,
-            },
-            'habits': []
-        }
-
-        for habit in habits:
-            habit_data = {
-                'id': habit.id,
-                'action': habit.action,
-                'place': habit.place,
-                'time': habit.time.strftime('%H:%M') if habit.time else None,
-                'frequency': habit.frequency,
-                'duration_seconds': habit.duration,
-                'is_pleasant': habit.is_pleasant,
-                'reward': habit.reward,
-                'related_habit_id': habit.related_habit_id,
-                'is_public': habit.is_public,
-                'created_at': habit.created_at.isoformat(),
-                'updated_at': habit.updated_at.isoformat(),
-                'full_description': habit.full_description,
-                'completions': []
-            }
-
-            # Добавляем последние 30 выполнений
-            recent_completions = habit.completions.order_by('-completed_at')[:30]
-            for completion in recent_completions:
-                habit_data['completions'].append({
-                    'completed_at': completion.completed_at.isoformat(),
-                    'is_completed': completion.is_completed,
-                    'note': completion.note
-                })
-
-            data['habits'].append(habit_data)
-
-        response = HttpResponse(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            content_type='application/json'
-        )
-        response['Content-Disposition'] = f'attachment; filename="habits_{user.username}_{datetime.now().date()}.json"'
-
-        return response
-
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def bulk_complete(self, request):
         """Массовое выполнение нескольких привычек"""
-        habit_ids = request.data.get('habit_ids', [])
-        note = request.data.get('note', '')
+        habit_ids = request.data.get("habit_ids", [])
+        note = request.data.get("note", "")
 
         if not habit_ids:
-            return Response(
-                {'error': 'No habit_ids provided'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "No habit_ids provided"}, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
         successes = []
@@ -659,58 +667,47 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
 
                 # Проверяем, можно ли выполнять привычку
                 if not habit.can_be_completed_today():
-                    errors.append({
-                        'habit_id': habit_id,
-                        'error': f'Cannot complete habit more frequently than {habit.frequency_days} days'
-                    })
+                    errors.append(
+                        {
+                            "habit_id": habit_id,
+                            "error": f"Cannot complete habit more frequently than {habit.frequency_days} days",
+                        }
+                    )
                     continue
 
                 # Создаем выполнение
-                completion = HabitCompletion.objects.create(
-                    habit=habit,
-                    is_completed=True,
-                    note=note
+                completion = HabitCompletion.objects.create(habit=habit, is_completed=True, note=note)
+
+                successes.append(
+                    {
+                        "habit_id": habit_id,
+                        "action": habit.action,
+                        "completion_id": completion.id,
+                        "completed_at": completion.completed_at,
+                    }
                 )
 
-                successes.append({
-                    'habit_id': habit_id,
-                    'action': habit.action,
-                    'completion_id': completion.id,
-                    'completed_at': completion.completed_at
-                })
-
             except Habit.DoesNotExist:
-                errors.append({
-                    'habit_id': habit_id,
-                    'error': 'Habit not found or access denied'
-                })
+                errors.append({"habit_id": habit_id, "error": "Habit not found or access denied"})
             except Exception as e:
-                errors.append({
-                    'habit_id': habit_id,
-                    'error': str(e)
-                })
+                errors.append({"habit_id": habit_id, "error": str(e)})
 
-        return Response({
-            'successes': successes,
-            'errors': errors,
-            'summary': {
-                'total': len(habit_ids),
-                'successful': len(successes),
-                'failed': len(errors)
+        return Response(
+            {
+                "successes": successes,
+                "errors": errors,
+                "summary": {"total": len(habit_ids), "successful": len(successes), "failed": len(errors)},
             }
-        })
+        )
 
-    @action(detail=False, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=["patch"], permission_classes=[permissions.IsAuthenticated])
     def bulk_update_public(self, request):
         """Массовое обновление статуса публичности"""
-        habit_ids = request.data.get('habit_ids', [])
-        is_public = request.data.get('is_public')
+        habit_ids = request.data.get("habit_ids", [])
+        is_public = request.data.get("is_public")
 
         if is_public is None:
-            return Response(
-                {'error': 'is_public field is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "is_public field is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
         updated_count = 0
@@ -719,16 +716,15 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         habits = Habit.objects.filter(id__in=habit_ids, user=user)
 
         if habits.count() != len(habit_ids):
-            return Response(
-                {'error': 'Some habits not found or access denied'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Some habits not found or access denied"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Массовое обновление
         updated_count = habits.update(is_public=is_public)
 
-        return Response({
-            'updated_count': updated_count,
-            'is_public': is_public,
-            'message': f'Successfully updated {updated_count} habits'
-        })
+        return Response(
+            {
+                "updated_count": updated_count,
+                "is_public": is_public,
+                "message": f"Successfully updated {updated_count} habits",
+            }
+        )
