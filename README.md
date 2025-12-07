@@ -31,15 +31,109 @@
 6. ⏰ **Нельзя не выполнять привычку более 7 дней**
 
 ## 🏗️ Архитектура
-![img.png](img.png)
+![img_1.png](img_1.png)
+![img_2.png](img_2.png)
+## 🔗 Связи между приложениями
+![img_3.png](img_3.png)
+## 🗂️ Ключевые файлы Telegram интеграции:
+1. Модели данных (telegram_bot/models.py):
+```python
+class TelegramUser(models.Model):           # Связь пользователь ↔ Telegram
+    user = models.OneToOneField(User)       # → users.User
+    chat_id = models.BigIntegerField()      # ID чата в Telegram
+    telegram_username = models.CharField()  # @username в Telegram
+    is_active = models.BooleanField()       # Активны ли уведомления
 
+class TelegramConnectionCode(models.Model): # Коды для подключения
+    user = models.ForeignKey(User)          # → users.User  
+    code = models.CharField()               # Уникальный код (8 символов)
+    expires_at = models.DateTimeField()     # Время жизни кода
+    is_used = models.BooleanField()         # Использован ли код
+```
+2. Сервис отправки сообщений (telegram_bot/services.py):
+```python
+class TelegramBotService:
+    def __init__(self, token):              # Инициализация с токеном бота
+        self.base_url = f"https://api.telegram.org/bot{token}"
+    
+    def send_message(chat_id, text):        # Отправка простого сообщения
+    def send_habit_reminder(chat_id, habit): # Отправка напоминания о привычке
+```
+3. Основной бот (telegram_bot/management/commands/run_bot.py):
+```python
+class Command(BaseCommand):
+    def handle():                           # Основной цикл polling
+    def _process_update():                  # Обработка одного обновления
+    def _handle_message():                  # Обработка команд (/start, /connect и т.д.)
+    def _handle_connect_command():          # Обработка /connect КОД
+    def _handle_status_command():           # Обработка /status
+```
+4. Генерация кода подключения (users/views.py):
+```python
+@api_view(['GET'])
+def generate_telegram_code(request):        # API эндпоинт для кода
+    # Генерирует код и возвращает его пользователю
+    # POSTMAN: GET /api/users/telegram/connect/
+```
+## 🔄 Поток данных:
+```text
+1. ПОЛЬЗОВАТЕЛЬ в веб-приложении:
+   → Нажимает "Подключить Telegram"
+   → GET /api/users/telegram/connect/
+   ← Получает {"code": "abc123xyz"}
+
+2. ПОЛЬЗОВАТЕЛЬ в Telegram:
+   → Находит @anton_tumashov_bot
+   → Отправляет /start
+   → Отправляет /connect abc123xyz
+   → Бот проверяет код в базе
+   → Создает связь user ↔ chat_id
+
+3. СИСТЕМА напоминаний:
+   → Запускается python manage.py run_bot
+   → Бот слушает сообщения 24/7
+   → Задачи Celery/Django отправляют напоминания
+   → TelegramBotService.send_habit_reminder()
+   → Пользователь получает уведомление
+```
+
+## 🚀 Команды для работы:
+```bash
+# Запуск Django сервера
+python manage.py runserver
+
+# Запуск Telegram бота (polling режим)
+python manage.py run_bot
+
+# Тестовые команды
+python manage.py send_test_reminder --user username
+python manage.py send_daily_reports
+python manage.py test_bot_simple
+
+# Администрирование
+python manage.py createsuperuser
+python manage.py makemigrations
+python manage.py migrate
+```
+## 📊 База данных после миграций:
+```text
+Таблицы в PostgreSQL:
+- habits_habit
+- habits_habitcompletion  
+- users_user (или auth_user)
+- telegram_bot_telegramuser          ⭐ НОВАЯ
+- telegram_bot_telegramconnectioncode ⭐ НОВАЯ
+- django_session
+- authtoken_token
+- и другие Django таблицы
+```
 ## 🚀 Быстрый старт
 
 ### 1. Клонирование и настройка
 
 ```bash
 # Клонирование репозитория
-git clone <repository-url>
+git clone <git@github.com:Anton742-Tu/HabitFlow-API.git>
 cd HabitFlow-API
 
 # Создание виртуального окружения
@@ -282,18 +376,24 @@ Git Hooks
 - flake8 (стиль кода)
 - mypy (проверка типов)
 
-## 🔧 Настройки окружения
-- Основные переменные окружения (.env):
-- env
+## 🔧 Настройки окружения (.env)
+
+### Telegram Bot
+- TELEGRAM_BOT_TOKEN=7665832286:ваш_токен_от_BotFather
+- TELEGRAM_BOT_USERNAME=anton_tumashov_bot
+- TELEGRAM_WEBHOOK_URL=https://ваш-домен.com/webhook/  # Для production
+### Celery (для будущего)
+- CELERY_BROKER_URL=redis://localhost:6379/0
+
 ### Django
 - DEBUG=True
-- SECRET_KEY=your-secret-key
-- ALLOWED_HOSTS=localhost,127.0.0.1
+- SECRET_KEY=ваш_secret_key
+- DATABASE_URL=postgres://...
 
 ### Database
 - USE_POSTGRESQL=False
 - POSTGRES_DB=habitflow_db
-- POSTGRES_USER=habitflow_user
+- POSTGRES_USER=postgres
 - POSTGRES_PASSWORD=secure_password
 - POSTGRES_HOST=localhost
 - POSTGRES_PORT=5432
