@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -77,3 +78,32 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def generate_telegram_code(request):
+    """Генерация кода для подключения Telegram"""
+    from telegram_bot.models import TelegramConnectionCode
+
+    user = request.user
+
+    # Генерируем новый код
+    connection_code = TelegramConnectionCode.generate_code(user)
+
+    return Response(
+        {
+            "success": True,
+            "code": connection_code.code,
+            "bot_username": "anton_tumashov_bot",
+            "instructions": [
+                "1. Найдите в Telegram бота @anton_tumashov_bot",
+                "2. Отправьте команду /start",
+                "3. Отправьте команду: /connect " + connection_code.code,
+                "4. Готово! Вы будете получать уведомления",
+            ],
+            "expires_at": connection_code.expires_at.isoformat(),
+            "expires_in_minutes": 10,
+            "user": {"username": user.username, "email": user.email},
+        }
+    )

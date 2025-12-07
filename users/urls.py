@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import CustomTokenObtainPairView, LogoutView, RegisterView, UserProfileView
+from .views import CustomTokenObtainPairView, LogoutView, RegisterView, UserProfileView, generate_telegram_code
 
 urlpatterns = [
     # Аутентификация
@@ -11,4 +11,6 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     # Профиль
     path("profile/", UserProfileView.as_view(), name="profile"),
+    # Telegram подключение
+    path("telegram/connect/", generate_telegram_code, name="telegram-connect"),
 ]
