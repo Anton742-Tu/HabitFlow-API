@@ -101,7 +101,7 @@ def _handle_connect_command(chat_id, connection_code, bot_service, message):
         )
 
 
-def _handle_stats_command(self, chat_id, bot_service):
+def _handle_stats_command(chat_id, bot_service):  # ИСПРАВЛЕНО: убрали self
     """Обработка команды статистики"""
     try:
         telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
@@ -112,9 +112,11 @@ def _handle_stats_command(self, chat_id, bot_service):
 
         user = telegram_user.user
 
-        from django.utils import timezone
-
         # Получаем статистику
+        from django.db import models
+
+        from habits.models import HabitCompletion
+
         total_habits = user.habits.count()
         completed_today = user.habits.filter(completions__completed_at__date=timezone.now().date()).count()
 
@@ -213,7 +215,7 @@ def _handle_settings_command(chat_id, bot_service):
             bot_service.send_message(chat_id, "❌ <b>Сначала подключите аккаунт!</b>\n\n" "Используйте /connect КОД")
             return
 
-        # Получаем настройки (можно создать отдельную модель NotificationSettings)
+        # Получаем настройки
         response_text = (
             f"⚙️ <b>Настройки уведомлений</b>\n\n"
             f"🔔 <b>Текущие настройки:</b>\n"
@@ -260,6 +262,8 @@ def _handle_message(chat_id, text, bot_service, message):
             "/start - Начало работы с ботом\n"
             "/connect КОД - Подключить ваш аккаунт HabitFlow\n"
             "/status - Проверить статус подключения\n"
+            "/stats - Ваша статистика\n"
+            "/settings - Настройки уведомлений\n"
             "/help - Эта справка\n\n"
             "🔔 <b>После подключения:</b>\n"
             "• Вы будете получать напоминания о привычках\n"
@@ -291,9 +295,31 @@ def _handle_message(chat_id, text, bot_service, message):
     elif text == "/settings":
         _handle_settings_command(chat_id, bot_service)
 
-    # Команда /stats
+    # Команда /stats или /statistics
     elif text == "/stats" or text == "/statistics":
-        self._handle_stats_command(chat_id, bot_service)
+        _handle_stats_command(chat_id, bot_service)  # ИСПРАВЛЕНО: убрали self
+
+    # Команда /status
+    elif text == "/status":
+        try:
+            telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
+            if telegram_user:
+                response_text = (
+                    f"✅ <b>Аккаунт подключен!</b>\n\n"
+                    f"👤 <b>Пользователь:</b> {telegram_user.user.username}\n"
+                    f"📧 <b>Email:</b> {telegram_user.user.email}\n"
+                    f"🔗 <b>Подключен:</b> {telegram_user.created_at.strftime('%d.%m.%Y %H:%M')}\n"
+                    f"🔔 <b>Уведомления:</b> {'Включены ✅' if telegram_user.is_active else 'Выключены ❌'}\n\n"
+                    f"Используйте /stats для статистики"
+                )
+            else:
+                response_text = (
+                    "❌ <b>Аккаунт не подключен</b>\n\n"
+                    "Используйте /connect КОД для подключения вашего аккаунта HabitFlow"
+                )
+            bot_service.send_message(chat_id, response_text)
+        except Exception as e:
+            logger.error(f"Ошибка статуса: {e}")
 
     # Любое другое сообщение
     else:

@@ -1,18 +1,19 @@
-from datetime import timedelta
 import os
+from datetime import timedelta
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Определяем какое окружение используется
-ENVIRONMENT = os.getenv('DJANGO_ENV', 'development')
+ENVIRONMENT = os.getenv("DJANGO_ENV", "development")
 
 # Загружаем соответствующий .env файл
-if ENVIRONMENT == 'production':
-    env_file = '.env.production'
-elif ENVIRONMENT == 'staging':
-    env_file = '.env.staging'
+if ENVIRONMENT == "production":
+    env_file = ".env.production"
+elif ENVIRONMENT == "staging":
+    env_file = ".env.staging"
 else:
-    env_file = '.env.development'
+    env_file = ".env.development"
 
 # Загружаем переменные окружения
 env_path = Path(__file__).resolve().parent.parent / env_file
@@ -44,14 +45,16 @@ if os.getenv("CORS_ALLOWED_ORIGINS"):
 
 # В режиме разработки можно разрешить локальные адреса
 if DEBUG:
-    CORS_ALLOWED_ORIGINS.extend([
-        "http://localhost:3000",  # React dev server
-        "http://127.0.0.1:3000",
-        "http://localhost:8080",  # Vue dev server
-        "http://127.0.0.1:8080",
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:5173",
-    ])
+    CORS_ALLOWED_ORIGINS.extend(
+        [
+            "http://localhost:3000",  # React dev server
+            "http://127.0.0.1:3000",
+            "http://localhost:8080",  # Vue dev server
+            "http://127.0.0.1:8080",
+            "http://localhost:5173",  # Vite dev server
+            "http://127.0.0.1:5173",
+        ]
+    )
 
 # Разрешать ли все origins в режиме разработки (опасно для production!)
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Только в DEBUG режиме!
@@ -97,12 +100,14 @@ if os.getenv("CSRF_TRUSTED_ORIGINS"):
     CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
 
 if DEBUG:
-    CSRF_TRUSTED_ORIGINS.extend([
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-    ])
+    CSRF_TRUSTED_ORIGINS.extend(
+        [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+        ]
+    )
 
 # Куки безопасность
 CSRF_COOKIE_SECURE = not DEBUG  # Только HTTPS в production
@@ -133,7 +138,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     # Third-party apps
     "rest_framework",
     "rest_framework_simplejwt",
@@ -143,7 +147,6 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_celery_beat",
     "django_celery_results",
-
     # Local apps
     "habits",
     "users",
@@ -237,9 +240,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # REST_FRAMEWORK
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
@@ -248,39 +249,27 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
-
     # Безопасность API
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",  # Только JSON
     ],
-
     # Включаем только JSON в production
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
     ],
-
     # Rate limiting
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle"
+        "rest_framework.throttling.UserRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/day",
-        "user": "1000/day"
-    }
+    "DEFAULT_THROTTLE_RATES": {"anon": "100/day", "user": "1000/day"},
 }
 
 # Включаем browsable API только в DEBUG режиме
 if DEBUG:
-    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append(
-        "rest_framework.renderers.BrowsableAPIRenderer"
-    )
-    REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append(
-        "rest_framework.parsers.FormParser"
-    )
-    REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append(
-        "rest_framework.parsers.MultiPartParser"
-    )
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append("rest_framework.renderers.BrowsableAPIRenderer")
+    REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append("rest_framework.parsers.FormParser")
+    REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append("rest_framework.parsers.MultiPartParser")
 
 # Simple JWT
 SIMPLE_JWT = {
@@ -358,3 +347,47 @@ if not DEBUG:
             },
         },
     }
+
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT токен в формате: Bearer {token}",
+        }
+    },
+    "USE_SESSION_AUTH": False,
+    "JSON_EDITOR": True,
+    "DEFAULT_INFO": "config.urls.swagger_info",  # Будет создан ниже
+    "DEFAULT_AUTO_SCHEMA_CLASS": "drf_yasg.inspectors.SwaggerAutoSchema",
+    "DEFAULT_FIELD_INSPECTORS": [
+        "drf_yasg.inspectors.CamelCaseJSONFilter",
+        "drf_yasg.inspectors.InlineSerializerInspector",
+        "drf_yasg.inspectors.RelatedFieldInspector",
+        "drf_yasg.inspectors.ChoiceFieldInspector",
+        "drf_yasg.inspectors.FileFieldInspector",
+        "drf_yasg.inspectors.DictFieldInspector",
+        "drf_yasg.inspectors.JSONFieldInspector",
+        "drf_yasg.inspectors.HiddenFieldInspector",
+        "drf_yasg.inspectors.RecursiveFieldInspector",
+        "drf_yasg.inspectors.SerializerMethodFieldInspector",
+        "drf_yasg.inspectors.SimpleFieldInspector",
+        "drf_yasg.inspectors.StringDefaultFieldInspector",
+    ],
+    "DEFAULT_FILTER_INSPECTORS": [
+        "drf_yasg.inspectors.CoreAPICompatInspector",
+    ],
+}
+
+REDOC_SETTINGS = {
+    "LAZY_RENDERING": True,
+    "HIDE_HOSTNAME": False,
+    "EXPAND_RESPONSES": "all",
+    "PATH_IN_MIDDLE": False,
+    "NATIVE_SCROLLBARS": False,
+    "REQUIRED_PROPS_FIRST": True,
+    "SORT_OPERATIONS": False,
+    "SORT_TAGS": True,
+    "SPEC_URL": "openapi.json",
+}

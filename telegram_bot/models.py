@@ -1,26 +1,34 @@
-import secrets
 from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
+from django.utils.crypto import get_random_string
 
 
 class TelegramUser(models.Model):
-    """Модель для связи пользователя Django с Telegram"""
+    """Пользователь Telegram, связанный с Django User"""
 
-    user = models.OneToOneField(
+    django_user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="telegram_profile",
-        verbose_name="Пользователь",
+        related_name="telegram_user",
+        verbose_name="Пользователь Django",
     )
-    chat_id = models.BigIntegerField(unique=True, verbose_name="ID чата в Telegram")
-    telegram_username = models.CharField(max_length=255, blank=True, verbose_name="Имя пользователя в Telegram")
-    first_name = models.CharField(max_length=255, blank=True)
-    last_name = models.CharField(max_length=255, blank=True)
-    is_active = models.BooleanField(default=True, verbose_name="Активен")
-    language_code = models.CharField(max_length=10, default="ru")
+
+    telegram_id = models.BigIntegerField(
+        unique=True, verbose_name="ID в Telegram", help_text="Числовой ID пользователя в Telegram"
+    )
+
+    username = models.CharField(max_length=255, blank=True, null=True, verbose_name="Username в Telegram")
+
+    first_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Имя в Telegram")
+
+    last_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Фамилия в Telegram")
+
+    is_active = models.BooleanField(default=True, verbose_name="Бот активен для пользователя")
+
+    language_code = models.CharField(max_length=10, blank=True, null=True, verbose_name="Код языка")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -30,7 +38,7 @@ class TelegramUser(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.user.username} (@{self.telegram_username})"
+        return f"{self.django_user.username} ({self.telegram_id})"
 
 
 class NotificationSettings(models.Model):
@@ -96,49 +104,41 @@ class SentNotification(models.Model):
 
 
 class TelegramConnectionCode(models.Model):
-    """Код для подключения Telegram аккаунта"""
+    """Код для привязки Telegram аккаунта"""
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="telegram_connection_codes"
+    django_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="telegram_codes",
+        verbose_name="Пользователь Django",
     )
-    code = models.CharField(max_length=50, unique=True)
+
+    code = models.CharField(max_length=6, unique=True, verbose_name="Код подтверждения")
+
+    telegram_id = models.BigIntegerField(null=True, blank=True, verbose_name="ID в Telegram (после привязки)")
+
+    is_used = models.BooleanField(default=False, verbose_name="Использован")
+
+    expires_at = models.DateTimeField(verbose_name="Действителен до")
+
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-    is_used = models.BooleanField(default=False)
 
     class Meta:
-        verbose_name = "Код подключения Telegram"
-        verbose_name_plural = "Коды подключения Telegram"
+        verbose_name = "Код привязки Telegram"
+        verbose_name_plural = "Коды привязки Telegram"
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.user.username}: {self.code}"
-
-    def is_valid(self):
-        """Проверка что код еще действителен"""
-        return not self.is_used and timezone.now() < self.expires_at
-
-    @classmethod
-    def generate_code(cls, user):
-        """Генерация нового кода для пользователя"""
-        # Деактивируем старые коды пользователя
-        cls.objects.filter(user=user, is_used=False).update(is_used=True)
-
-        # Генерируем новый код
-        code = secrets.token_urlsafe(8)
-
-        # Создаем запись
-        connection_code = cls.objects.create(user=user, code=code, expires_at=timezone.now() + timedelta(minutes=10))
-
-        return connection_code
-
-    def mark_as_used(self):
-        """Пометить код как использованный"""
-        self.is_used = True
-        self.save()
+        return f"Код {self.code} для {self.django_user.username}"
 
     def save(self, *args, **kwargs):
+        if not self.code:
+            # Генерируем случайный 6-значный код
+            self.code = get_random_string(6, "0123456789")
         if not self.expires_at:
-            # По умолчанию код действителен 10 минут
-            self.expires_at = timezone.now() + timedelta(minutes=10)
+            # Код действует 10 минут
+            self.expires_at = timezone.now() + timezone.timedelta(minutes=10)
         super().save(*args, **kwargs)
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() < self.expires_at

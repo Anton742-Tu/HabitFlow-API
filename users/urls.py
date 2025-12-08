@@ -1,7 +1,13 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import CustomTokenObtainPairView, LogoutView, RegisterView, UserProfileView, generate_telegram_code
+from .views import (
+    CustomTokenObtainPairView,
+    LogoutView,
+    RegisterView,
+    UserProfileView,
+    generate_telegram_code,
+)
 
 urlpatterns = [
     # Аутентификация

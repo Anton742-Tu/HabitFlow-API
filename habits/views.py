@@ -14,7 +14,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from .models import Habit, HabitCompletion
-from .permissions import HabitCompletionPermission, HabitPermission
+from .permissions import HabitCompletionPermission
 from .serializers import HabitCompletionSerializer, HabitSerializer, PublicHabitSerializer
 
 
@@ -102,23 +102,106 @@ class StandardPagination(PageNumberPagination):
     page_query_param = "page"
 
 
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+
+
 class HabitViewSet(viewsets.ModelViewSet):
     """
-    ViewSet для управления привычками.
+    Управление привычками пользователя.
 
-    Права доступа:
-    - Каждый пользователь имеет доступ только к своим привычкам по механизму CRUD
-    - Пользователь может видеть список публичных привычек без возможности редактировать или удалять
+    Доступные действия:
+    - GET /api/habits/ - список всех привычек (свои + публичные)
+    - POST /api/habits/ - создать новую привычку
+    - GET /api/habits/{id}/ - получить детали привычки
+    - PUT/PATCH /api/habits/{id}/ - обновить привычку
+    - DELETE /api/habits/{id}/ - удалить привычку
+
+    Особенности:
+    - Только владелец может изменять/удалять привычки
+    - Публичные привычки видны всем пользователям (только чтение)
+    - Автоматическая валидация по правилам Atomic Habits
     """
 
-    queryset = Habit.objects.all()
-    serializer_class = HabitSerializer
-    permission_classes = [HabitPermission]
-    pagination_class = StandardPagination
-    filter_backends = [DjangoFilterBackend]  # Временно убираем SearchFilter
-    filterset_class = HabitFilter
-    ordering_fields = ["time", "created_at", "updated_at"]
-    ordering = ["time"]
+    @swagger_auto_schema(
+        operation_description="Список привычек с пагинацией и фильтрацией",
+        manual_parameters=[
+            openapi.Parameter("page", openapi.IN_QUERY, description="Номер страницы", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(
+                "page_size",
+                openapi.IN_QUERY,
+                description="Количество элементов на странице (макс. 50)",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "is_pleasant", openapi.IN_QUERY, description="Фильтр по типу привычки", type=openapi.TYPE_BOOLEAN
+            ),
+            openapi.Parameter(
+                "frequency",
+                openapi.IN_QUERY,
+                description="Фильтр по периодичности",
+                type=openapi.TYPE_STRING,
+                enum=["daily", "weekly", "monthly"],
+            ),
+            openapi.Parameter(
+                "is_public", openapi.IN_QUERY, description="Фильтр по публичности", type=openapi.TYPE_BOOLEAN
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Создание новой привычки",
+        request_body=HabitSerializer,
+        responses={
+            201: openapi.Response(
+                description="Привычка создана",
+                examples={
+                    "application/json": {
+                        "id": 1,
+                        "user": {"id": 1, "username": "ivan"},
+                        "place": "Дом",
+                        "time": "08:00",
+                        "action": "Пить воду",
+                        "is_pleasant": False,
+                        "frequency": "daily",
+                        "duration": 60,
+                        "full_description": "Я буду пить воду в 08:00 в дом",
+                    }
+                },
+            ),
+            400: "Ошибка валидации (проверьте правила Atomic Habits)",
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Создание новой привычки",
+        request_body=HabitSerializer,
+        responses={
+            201: openapi.Response(
+                description="Привычка создана",
+                examples={
+                    "application/json": {
+                        "id": 1,
+                        "user": {"id": 1, "username": "ivan"},
+                        "place": "Дом",
+                        "time": "08:00",
+                        "action": "Пить воду",
+                        "is_pleasant": False,
+                        "frequency": "daily",
+                        "duration": 60,
+                        "full_description": "Я буду пить воду в 08:00 в дом",
+                    }
+                },
+            ),
+            400: "Ошибка валидации (проверьте правила Atomic Habits)",
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
     def get_queryset(self):
         """
