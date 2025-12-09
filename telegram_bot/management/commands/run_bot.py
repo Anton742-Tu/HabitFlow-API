@@ -18,7 +18,6 @@ User = get_user_model()
 def _handle_connect_command(chat_id, connection_code, bot_service, message):
     """Обработка команды подключения"""
     try:
-        # Ищем код в базе данных
         code_obj = TelegramConnectionCode.objects.filter(code=connection_code, is_used=False).first()
 
         if not code_obj:
@@ -33,7 +32,6 @@ def _handle_connect_command(chat_id, connection_code, bot_service, message):
             )
             return
 
-        # Проверяем не истек ли код
         if not code_obj.is_valid():
             bot_service.send_message(
                 chat_id,
@@ -45,13 +43,11 @@ def _handle_connect_command(chat_id, connection_code, bot_service, message):
 
         user = code_obj.user
 
-        # Получаем информацию об отправителе
         from_user = message.get("from", {})
         telegram_username = from_user.get("username", "")
         first_name = from_user.get("first_name", "")
         last_name = from_user.get("last_name", "")
 
-        # Создаем или обновляем запись TelegramUser
         telegram_user, created = TelegramUser.objects.update_or_create(
             user=user,
             defaults={
@@ -63,7 +59,6 @@ def _handle_connect_command(chat_id, connection_code, bot_service, message):
             },
         )
 
-        # Помечаем код как использованный
         code_obj.mark_as_used()
 
         if created:
@@ -79,13 +74,10 @@ def _handle_connect_command(chat_id, connection_code, bot_service, message):
                 f"Используйте /status для проверки подключения."
             )
         else:
-            response_text = (
-                f"✅ <b>Подключение обновлено!</b>\n\n" f"Теперь вы будете получать уведомления в этот чат."
-            )
+            response_text = "✅ <b>Подключение обновлено!</b>\n\nТеперь вы будете получать уведомления в этот чат."
 
         bot_service.send_message(chat_id, response_text)
 
-        # Отправляем тестовое уведомление
         time.sleep(1)
         bot_service.send_message(
             chat_id,
@@ -97,34 +89,29 @@ def _handle_connect_command(chat_id, connection_code, bot_service, message):
     except Exception as e:
         logger.error(f"Ошибка подключения: {e}")
         bot_service.send_message(
-            chat_id, "❌ <b>Ошибка подключения</b>\n\n" "Попробуйте позже или обратитесь в поддержку."
+            chat_id, "❌ <b>Ошибка подключения</b>\n\nПопробуйте позже или обратитесь в поддержку."
         )
 
 
-def _handle_stats_command(chat_id, bot_service):  # ИСПРАВЛЕНО: убрали self
+def _handle_stats_command(chat_id, bot_service):
     """Обработка команды статистики"""
     try:
         telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
 
         if not telegram_user:
-            bot_service.send_message(chat_id, "❌ <b>Сначала подключите аккаунт!</b>\n\n" "Используйте /connect КОД")
+            bot_service.send_message(chat_id, "❌ <b>Сначала подключите аккаунт!</b>\n\nИспользуйте /connect КОД")
             return
 
         user = telegram_user.user
 
-        # Получаем статистику
         from django.db import models
-
-        from habits.models import HabitCompletion
 
         total_habits = user.habits.count()
         completed_today = user.habits.filter(completions__completed_at__date=timezone.now().date()).count()
 
-        # Привычки по типам
         pleasant_habits = user.habits.filter(is_pleasant=True).count()
         useful_habits = user.habits.filter(is_pleasant=False).count()
 
-        # Последние выполнения
         recent_completions = (
             user.habits.filter(completions__isnull=False)
             .annotate(last_completion=models.Max("completions__completed_at"))
@@ -153,9 +140,7 @@ def _handle_stats_command(chat_id, bot_service):  # ИСПРАВЛЕНО: убр
         if recent_text:
             response_text += f"⏰ <b>Последние выполнения:</b>\n{recent_text}\n"
 
-        response_text += (
-            f"💪 <b>Продолжайте в том же духе!</b>\n\n" f"Для детальной статистики откройте веб-приложение."
-        )
+        response_text += "💪 <b>Продолжайте в том же духе!</b>\n\nДля детальной статистики откройте веб-приложение."
 
         bot_service.send_message(chat_id, response_text)
 
@@ -165,10 +150,9 @@ def _handle_stats_command(chat_id, bot_service):  # ИСПРАВЛЕНО: убр
 
 def _answer_callback_query(callback_query_id, text):
     """Отправка ответа на callback query"""
-    token = settings.TELEGRAM_BOT_TOKEN
     try:
         response = requests.post(
-            f"https://api.telegram.org/bot{token}/answerCallbackQuery",
+            f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/answerCallbackQuery",
             json={"callback_query_id": callback_query_id, "text": text, "show_alert": False},
         )
 
@@ -181,7 +165,6 @@ def _answer_callback_query(callback_query_id, text):
 
 def _handle_callback_query(chat_id, data, bot_service, callback_query):
     """Обработка нажатия на inline кнопки"""
-    token = settings.TELEGRAM_BOT_TOKEN
 
     if data.startswith("complete_"):
         habit_id = data.replace("complete_", "")
@@ -193,14 +176,13 @@ def _handle_callback_query(chat_id, data, bot_service, callback_query):
             f"Обновите приложение для синхронизации.",
         )
 
-        # Отвечаем на callback query (убираем "часики" на кнопке)
         _answer_callback_query(callback_query["id"], "Привычка отмечена!")
 
     elif data.startswith("postpone_"):
         habit_id = data.replace("postpone_", "")
 
         bot_service.send_message(
-            chat_id, f"⏰ <b>Напоминание отложено на 15 минут</b>\n\n" f"Вы получите новое напоминание через 15 минут."
+            chat_id, "⏰ <b>Напоминание отложено на 15 минут</b>\n\nВы получите новое напоминание через 15 минут."
         )
 
         _answer_callback_query(callback_query["id"], "Напоминание отложено")
@@ -212,20 +194,19 @@ def _handle_settings_command(chat_id, bot_service):
         telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
 
         if not telegram_user:
-            bot_service.send_message(chat_id, "❌ <b>Сначала подключите аккаунт!</b>\n\n" "Используйте /connect КОД")
+            bot_service.send_message(chat_id, "❌ <b>Сначала подключите аккаунт!</b>\n\nИспользуйте /connect КОД")
             return
 
-        # Получаем настройки
         response_text = (
-            f"⚙️ <b>Настройки уведомлений</b>\n\n"
-            f"🔔 <b>Текущие настройки:</b>\n"
-            f"• Напоминания о привычках: ✅ Включены\n"
-            f"• Ежедневные отчеты: ✅ Включены\n"
-            f"• Уведомления о прогрессе: ✅ Включены\n\n"
-            f"⚡ <b>Быстрые команды:</b>\n"
-            f"/notify_on - Включить все уведомления\n"
-            f"/notify_off - Выключить все уведомления\n\n"
-            f"Для детальных настроений откройте веб-приложение."
+            "⚙️ <b>Настройки уведомлений</b>\n\n"
+            "🔔 <b>Текущие настройки:</b>\n"
+            "• Напоминания о привычках: ✅ Включены\n"
+            "• Ежедневные отчеты: ✅ Включены\n"
+            "• Уведомления о прогрессе: ✅ Включены\n\n"
+            "⚡ <b>Быстрые команды:</b>\n"
+            "/notify_on - Включить все уведомления\n"
+            "/notify_off - Выключить все уведомления\n\n"
+            "Для детальных настроений откройте веб-приложение."
         )
 
         bot_service.send_message(chat_id, response_text)
@@ -237,7 +218,6 @@ def _handle_settings_command(chat_id, bot_service):
 def _handle_message(chat_id, text, bot_service, message):
     """Обработка текстового сообщения"""
 
-    # Команда /start
     if text == "/start":
         response_text = (
             "👋 <b>Привет! Я бот для трекера привычек HabitFlow!</b>\n\n"
@@ -255,7 +235,6 @@ def _handle_message(chat_id, text, bot_service, message):
 
         bot_service.send_message(chat_id, response_text)
 
-    # Команда /help
     elif text == "/help":
         response_text = (
             "ℹ️ <b>Справка по командам:</b>\n\n"
@@ -273,7 +252,6 @@ def _handle_message(chat_id, text, bot_service, message):
 
         bot_service.send_message(chat_id, response_text)
 
-    # Команда /connect
     elif text.startswith("/connect"):
         parts = text.split()
         if len(parts) == 2:
@@ -291,15 +269,12 @@ def _handle_message(chat_id, text, bot_service, message):
                 "4. Скопируйте код",
             )
 
-    # Команда /settings
     elif text == "/settings":
         _handle_settings_command(chat_id, bot_service)
 
-    # Команда /stats или /statistics
     elif text == "/stats" or text == "/statistics":
-        _handle_stats_command(chat_id, bot_service)  # ИСПРАВЛЕНО: убрали self
+        _handle_stats_command(chat_id, bot_service)
 
-    # Команда /status
     elif text == "/status":
         try:
             telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
@@ -321,10 +296,9 @@ def _handle_message(chat_id, text, bot_service, message):
         except Exception as e:
             logger.error(f"Ошибка статуса: {e}")
 
-    # Любое другое сообщение
     else:
         bot_service.send_message(
-            chat_id, "🤔 <b>Не понял команду</b>\n\n" "Используйте /help для списка доступных команд"
+            chat_id, "🤔 <b>Не понял команду</b>\n\nИспользуйте /help для списка доступных команд"
         )
 
 
@@ -333,7 +307,6 @@ def _process_update(update, bot_service):
     try:
         logger.info(f"Получено обновление: {update}")
 
-        # Обработка сообщения
         if "message" in update:
             message = update["message"]
             chat_id = message["chat"]["id"]
@@ -342,7 +315,6 @@ def _process_update(update, bot_service):
             if text:
                 _handle_message(chat_id, text, bot_service, message)
 
-        # Обработка callback query (нажатия на кнопки)
         elif "callback_query" in update:
             callback_query = update["callback_query"]
             chat_id = callback_query["message"]["chat"]["id"]
@@ -358,9 +330,7 @@ class Command(BaseCommand):
     help = "Запуск Telegram бота в режиме polling"
 
     def handle(self, *args, **options):
-        token = settings.TELEGRAM_BOT_TOKEN
-
-        if not token:
+        if not settings.TELEGRAM_BOT_TOKEN:
             self.stdout.write(self.style.ERROR("❌ Токен бота не найден. Добавьте TELEGRAM_BOT_TOKEN в .env"))
             return
 
@@ -368,15 +338,14 @@ class Command(BaseCommand):
         self.stdout.write("⚡ Бот будет проверять новые сообщения каждую секунду")
         self.stdout.write("🛑 Для остановки нажмите Ctrl+C")
 
-        bot_service = TelegramBotService(token)
+        bot_service = TelegramBotService(settings.TELEGRAM_BOT_TOKEN)
         offset = 0
 
         try:
             while True:
                 try:
-                    # Получаем обновления от Telegram
                     response = requests.get(
-                        f"https://api.telegram.org/bot{token}/getUpdates",
+                        f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getUpdates",
                         params={
                             "offset": offset,
                             "timeout": 10,
@@ -394,16 +363,16 @@ class Command(BaseCommand):
                                 offset = update["update_id"] + 1
                                 _process_update(update, bot_service)
 
-                    time.sleep(1)  # Небольшая пауза между запросами
+                    time.sleep(1)
 
                 except requests.exceptions.Timeout:
-                    continue  # Просто продолжаем при таймауте
+                    continue
                 except KeyboardInterrupt:
                     self.stdout.write(self.style.WARNING("\n👋 Останавливаем бота..."))
                     break
                 except Exception as e:
                     logger.error(f"Ошибка в основном цикле: {e}")
-                    time.sleep(5)  # Пауза при ошибке
+                    time.sleep(5)
 
         except KeyboardInterrupt:
             self.stdout.write(self.style.SUCCESS("\n✅ Бот остановлен"))

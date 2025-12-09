@@ -146,7 +146,7 @@ def handle_connection(chat_id, connection_code, bot_service):
                 f"Используйте /status для проверки подключения."
             )
         else:
-            message = f"✅ Подключение обновлено!\n\n" f"Теперь вы будете получать уведомления в этот чат."
+            message = "✅ Подключение обновлено!\n\n" "Теперь вы будете получать уведомления в этот чат."
 
         bot_service.send_message(chat_id=chat_id, text=message)
 
@@ -233,6 +233,6 @@ def handle_callback_query(chat_id, callback_data):
     elif callback_data.startswith("postpone_"):
         # Отложить напоминание
         habit_id = callback_data.replace("postpone_", "")
-        bot_service.send_message(chat_id=chat_id, text=f"⏰ Напоминание отложено на 15 минут.")
+        bot_service.send_message(chat_id=chat_id, text="⏰ Напоминание отложено на 15 минут.")
 
     return JsonResponse({"status": "ok"})

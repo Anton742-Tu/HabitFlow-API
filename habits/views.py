@@ -8,6 +8,8 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django_filters import BooleanFilter, DateFilter, NumberFilter
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -102,10 +104,6 @@ class StandardPagination(PageNumberPagination):
     page_query_param = "page"
 
 
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-
-
 class HabitViewSet(viewsets.ModelViewSet):
     """
     Управление привычками пользователя.
@@ -174,9 +172,6 @@ class HabitViewSet(viewsets.ModelViewSet):
             400: "Ошибка валидации (проверьте правила Atomic Habits)",
         },
     )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
     @swagger_auto_schema(
         operation_description="Создание новой привычки",
         request_body=HabitSerializer,
@@ -201,6 +196,7 @@ class HabitViewSet(viewsets.ModelViewSet):
         },
     )
     def create(self, request, *args, **kwargs):
+        """Создание новой привычки"""
         return super().create(request, *args, **kwargs)
 
     def get_queryset(self):

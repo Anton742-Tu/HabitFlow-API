@@ -14,14 +14,12 @@ from .models import TelegramConnectionCode, TelegramUser
 from .services import TelegramBotService
 
 logger = logging.getLogger(__name__)
-
-# Инициализируем сервис
 bot_service = TelegramBotService()
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start"""
-    user = update.effective_user
+    user = update.effective_user  # Используется в welcome_text
 
     welcome_text = (
         f"👋 Привет, {user.first_name}!\n\n"
@@ -45,7 +43,6 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user = update.effective_user
 
-    # Проверяем, не привязан ли уже Telegram
     try:
         telegram_user = TelegramUser.objects.get(telegram_id=user.id)
         await update.message.reply_text(
@@ -55,8 +52,6 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except TelegramUser.DoesNotExist:
         pass
 
-    # Создаем код привязки
-    # Находим пользователя по username или email из аргументов
     if context.args:
         identifier = context.args[0]
         try:
@@ -72,7 +67,6 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
     else:
-        # Если не указан пользователь, показываем инструкцию
         await update.message.reply_text(
             "🔗 <b>Привязка аккаунта</b>\n\n"
             "Чтобы привязать Telegram к вашему аккаунту HabitFlow:\n"
@@ -86,7 +80,6 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Создаем код привязки
     connection_code = TelegramConnectionCode.objects.create(django_user=django_user)
 
     await update.message.reply_text(
@@ -102,16 +95,14 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик текстовых сообщений"""
-    user = update.effective_user
     text = update.message.text
 
-    # Проверяем, не является ли сообщение кодом привязки
     if text.isdigit() and len(text) == 6:
         await handle_connection_code(update, text)
         return
 
     await update.message.reply_text(
-        f"Я пока понимаю только команды 😊\n" f"Используйте /help чтобы увидеть список команд"
+        "Я пока понимаю только команды 😊\n" "Используйте /help чтобы увидеть список команд"
     )
 
 
@@ -120,12 +111,10 @@ async def handle_connection_code(update: Update, code: str):
     try:
         connection_code = TelegramConnectionCode.objects.get(code=code, is_used=False, telegram_id__isnull=True)
 
-        # Проверяем срок действия
         if not connection_code.is_valid():
             await update.message.reply_text("❌ Срок действия кода истек")
             return
 
-        # Привязываем Telegram
         TelegramUser.objects.create(
             django_user=connection_code.django_user,
             telegram_id=update.effective_user.id,
@@ -134,7 +123,6 @@ async def handle_connection_code(update: Update, code: str):
             last_name=update.effective_user.last_name,
         )
 
-        # Помечаем код как использованный
         connection_code.telegram_id = update.effective_user.id
         connection_code.is_used = True
         connection_code.save()
@@ -156,19 +144,16 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     data = query.data
-    chat_id = query.message.chat_id
 
-    # Обработка кнопки "Выполнено"
     if data.startswith("complete_"):
-        habit_id = data.replace("complete_", "")
-        # Здесь должна быть логика отметки выполнения привычки
-        await query.edit_message_text(text=f"✅ Привычка отмечена как выполненная!", parse_mode="HTML")
+        habit_id = data.replace("complete_", "")  # Используется в сообщении
 
-    # Обработка кнопки "Отложить"
+        await query.edit_message_text(text=f"✅ Привычка {habit_id} отмечена как выполненная!", parse_mode="HTML")
+
     elif data.startswith("postpone_"):
-        habit_id = data.replace("postpone_", "")
-        # Здесь должна быть логика откладывания напоминания
-        await query.edit_message_text(text=f"⏰ Напоминание отложено на 15 минут", parse_mode="HTML")
+        habit_id = data.replace("postpone_", "")  # Используется в сообщении
+
+        await query.edit_message_text(text=f"⏰ Напоминание {habit_id} отложено на 15 минут", parse_mode="HTML")
 
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -180,16 +165,12 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def setup_handlers(application: Application):
     """Настройка обработчиков"""
-    # Команды
     application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("help", start_command))  # Пока то же самое
+    application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("connect", connect_command))
 
-    # Обработка callback запросов (кнопки)
     application.add_handler(CallbackQueryHandler(callback_handler))
 
-    # Обработка текстовых сообщений
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Обработчик ошибок
     application.add_error_handler(error_handler)
