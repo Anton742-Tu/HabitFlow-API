@@ -16,7 +16,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from .models import Habit, HabitCompletion
-from .permissions import HabitCompletionPermission
+from .permissions import HabitCompletionPermission, HabitPermission
 from .serializers import HabitCompletionSerializer, HabitSerializer, PublicHabitSerializer
 
 
@@ -121,6 +121,13 @@ class HabitViewSet(viewsets.ModelViewSet):
     - Автоматическая валидация по правилам Atomic Habits
     """
 
+    serializer_class = HabitSerializer  # Основной сериализатор
+    permission_classes = [HabitPermission]  # Права доступа
+    pagination_class = StandardPagination  # Пагинация
+    filter_backends = [DjangoFilterBackend]  # Фильтрация
+    filterset_class = HabitFilter  # Класс фильтров
+    ordering_fields = ["time", "created_at"]  # Поля для сортировки
+
     @swagger_auto_schema(
         operation_description="Список привычек с пагинацией и фильтрацией",
         manual_parameters=[
@@ -149,29 +156,6 @@ class HabitViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @swagger_auto_schema(
-        operation_description="Создание новой привычки",
-        request_body=HabitSerializer,
-        responses={
-            201: openapi.Response(
-                description="Привычка создана",
-                examples={
-                    "application/json": {
-                        "id": 1,
-                        "user": {"id": 1, "username": "ivan"},
-                        "place": "Дом",
-                        "time": "08:00",
-                        "action": "Пить воду",
-                        "is_pleasant": False,
-                        "frequency": "daily",
-                        "duration": 60,
-                        "full_description": "Я буду пить воду в 08:00 в дом",
-                    }
-                },
-            ),
-            400: "Ошибка валидации (проверьте правила Atomic Habits)",
-        },
-    )
     @swagger_auto_schema(
         operation_description="Создание новой привычки",
         request_body=HabitSerializer,

@@ -44,6 +44,9 @@ class RegisterView(generics.CreateAPIView):
     После успешной регистрации автоматически возвращаются JWT токены.
     """
 
+    serializer_class = UserRegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
     @swagger_auto_schema(
         operation_description="Регистрация нового пользователя",
         request_body=UserRegisterSerializer,
