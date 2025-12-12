@@ -23,7 +23,6 @@ else:
     # Если файла нет, загружаем из .env
     load_dotenv()
 
-print(f"🚀 Загружено окружение: {ENVIRONMENT} из файла: {env_file}")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

@@ -20,8 +20,9 @@ class SerializersTestCase(TestCase):
             "place": "Дом",
             "time": time(8, 0),
             "action": "Тестовая привычка",
-            "duration": 60,
+            "is_pleasant": False,
             "frequency": "daily",
+            "duration": 60,
             "is_public": True,
         }
 

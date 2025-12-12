@@ -36,18 +36,20 @@ class TelegramBotService:
 
             response = requests.post(f"{self.base_url}/sendMessage", json=payload, timeout=10)
 
-            if response.status_code != 200:
-                logger.error(f"Telegram API error: {response.status_code} - {response.text}")
-                return None
-
-            return response.json()
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to send Telegram message: {e}")
-            return None
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("ok"):
+                    self.logger.info(f"Сообщение отправлено в Telegram chat {chat_id}")
+                    return True  # ← Должен возвращать True
+                else:
+                    self.logger.error(f"Telegram API error: {data.get('description')}")
+                    return False  # ← Должен возвращать False
+            else:
+                self.logger.error(f"Telegram API error: {response.status_code} - {response.text}")
+                return False  # ← Должен возвращать False
         except Exception as e:
-            logger.error(f"Unexpected error sending Telegram message: {e}")
-            return None
+            self.logger.error(f"Unexpected error sending Telegram message: {e}")
+            return False  # ← Должен возвращать False
 
     def send_habit_reminder(self, chat_id, habit):
         """Отправка напоминания о привычке"""

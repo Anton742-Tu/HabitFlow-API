@@ -141,3 +141,19 @@ class TelegramConnectionCode(models.Model):
 
     def is_valid(self):
         return not self.is_used and timezone.now() < self.expires_at
+
+    @classmethod
+    def generate_code(cls, user):
+        """Генерация уникального кода для подключения Telegram"""
+        import uuid
+
+        code = uuid.uuid4().hex[:6].upper()
+
+        # Удаляем старые коды пользователя - используем правильное имя поля
+        cls.objects.filter(django_user=user, is_used=False).delete()  # ← ИЗМЕНЕНО
+
+        # Создаем новый код
+        connection_code = cls.objects.create(
+            django_user=user, code=code, expires_at=timezone.now() + timezone.timedelta(minutes=10)  # ← ИЗМЕНЕНО
+        )
+        return connection_code
