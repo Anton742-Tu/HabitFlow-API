@@ -4,24 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Определяем какое окружение используется
-ENVIRONMENT = os.getenv("DJANGO_ENV", "development")
-
-# Загружаем соответствующий .env файл
-if ENVIRONMENT == "production":
-    env_file = ".env.production"
-elif ENVIRONMENT == "staging":
-    env_file = ".env.staging"
-else:
-    env_file = ".env.development"
-
-# Загружаем переменные окружения
-env_path = Path(__file__).resolve().parent.parent / env_file
-if env_path.exists():
-    load_dotenv(env_path)
-else:
-    # Если файла нет, загружаем из .env
-    load_dotenv()
+load_dotenv()
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent

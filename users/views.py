@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .serializers import UserProfileSerializer, UserRegisterSerializer
@@ -36,11 +37,6 @@ class RegisterView(generics.CreateAPIView):
     """
     Регистрация нового пользователя.
 
-    Для создания аккаунта необходимо указать:
-    - username (уникальный)
-    - email (уникальный)
-    - password и password2 (должны совпадать)
-
     После успешной регистрации автоматически возвращаются JWT токены.
     """
 
@@ -65,7 +61,21 @@ class RegisterView(generics.CreateAPIView):
         },
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        # Генерация JWT токенов
+        refresh = RefreshToken.for_user(user)
+
+        return Response(
+            {
+                "user": UserRegisterSerializer(user, context=self.get_serializer_context()).data,
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class UserProfileView(APIView):
