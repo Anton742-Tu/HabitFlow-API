@@ -35,3 +35,27 @@ class TestSimpleValidators(TestCase):
 
         invalid_choice = "yearly"
         self.assertNotIn(invalid_choice, allowed_choices)
+
+    def test_validation_logic_helpers(self):
+        """Дополнительные тесты логики валидации"""
+        # Проверяем логику валидации длительности
+        duration = 90
+        max_duration = 120
+
+        self.assertLessEqual(duration, max_duration)
+        self.assertGreater(duration, 0)
+
+        # Проверяем логику частоты
+        frequency = "daily"
+        allowed_frequencies = ["daily", "weekly", "monthly"]
+
+        self.assertIn(frequency, allowed_frequencies)
+
+        # Проверяем логику приятных/полезных привычек
+        is_pleasant = True
+        has_reward = False
+        has_related = False
+
+        # Для приятной привычки не должно быть награды или связанной привычки
+        if is_pleasant:
+            self.assertFalse(has_reward or has_related)

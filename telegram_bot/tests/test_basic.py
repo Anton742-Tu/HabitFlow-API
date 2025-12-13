@@ -1,5 +1,5 @@
-from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 
 User = get_user_model()
 
@@ -8,12 +8,12 @@ class TestTelegramBotSimple(TestCase):
     """Простые тесты для telegram_bot без сложных импортов"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='pass123')
+        self.user = User.objects.create_user(username="testuser", password="pass123")
 
     def test_module_imports(self):
         """Тест импортов модулей"""
         # Проверяем основные импорты
-        modules_to_test = ['telegram_bot.models', 'telegram_bot.views', 'telegram_bot.apps']
+        modules_to_test = ["telegram_bot.models", "telegram_bot.views", "telegram_bot.apps"]
 
         for module_name in modules_to_test:
             try:
@@ -25,8 +25,8 @@ class TestTelegramBotSimple(TestCase):
 
     def test_uuid_operations(self):
         """Тест операций с UUID (для генерации кодов)"""
-        import uuid
         import re
+        import uuid
 
         # Генерация UUID
         test_uuid = uuid.uuid4()
@@ -36,15 +36,16 @@ class TestTelegramBotSimple(TestCase):
         self.assertEqual(len(uuid_str), 36)
 
         # Проверяем формат с дефисами
-        self.assertTrue(re.match(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$', uuid_str))
+        self.assertTrue(re.match(r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", uuid_str))
 
         # Без дефисов
-        uuid_no_dashes = uuid_str.replace('-', '')
+        uuid_no_dashes = uuid_str.replace("-", "")
         self.assertEqual(len(uuid_no_dashes), 32)
 
     def test_datetime_operations(self):
         """Тест операций с датами (для expires_at)"""
-        from datetime import datetime, timedelta
+        from datetime import timedelta
+
         from django.utils import timezone
 
         now = timezone.now()
@@ -64,11 +65,11 @@ class TestTelegramBotSimple(TestCase):
 
         # Базовые операции
         self.assertEqual(test_string.upper(), "ABC123XYZ")
-        self.assertEqual(test_string.replace('123', '456'), "abc456xyz")
+        self.assertEqual(test_string.replace("123", "456"), "abc456xyz")
         self.assertEqual(len(test_string), 9)
         self.assertTrue(test_string.isalnum())
 
         # Для кодов telegram
         code_sample = "1234567890abcdef"
         self.assertEqual(len(code_sample), 16)
-        self.assertTrue(code_sample.isalnum() or '-' in code_sample)
+        self.assertTrue(code_sample.isalnum() or "-" in code_sample)

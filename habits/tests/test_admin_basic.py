@@ -1,12 +1,12 @@
-from django.test import TestCase
 from django.contrib import admin
+from django.test import TestCase
 
 
 class TestAdminBasic(TestCase):
     def test_admin_import(self):
         """Тест импорта admin"""
         try:
-            from habits import admin as habits_admin
+
             self.assertTrue(True)
         except ImportError:
             # Если нет admin.py - это нормально

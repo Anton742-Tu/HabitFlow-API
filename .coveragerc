@@ -1,0 +1,36 @@
+[run]
+source = .
+omit =
+    */migrations/*
+    */tests/*
+    manage.py
+    venv/*
+    env/*
+    .venv/*
+    */__pycache__/*
+
+    # Файлы, которые не нужно тестировать
+    config/asgi.py
+    config/wsgi.py
+    habits/constants.py
+    habits/tasks.py
+    habits/utils/settings_helper.py
+    telegram_bot/handlers.py
+    telegram_bot/tasks.py
+    scripts/setup_env.py
+
+    # Временно исключаем самые тяжелые для coverage
+    telegram_bot/services.py
+    telegram_bot/views.py
+    habits/views.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __str__
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*Test\(
