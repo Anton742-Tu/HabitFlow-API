@@ -72,7 +72,6 @@ class HabitSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Валидация данных привычки"""
-        request = self.context.get("request")
 
         # Проверяем, что для приятной привычки не указаны reward или related_habit
         is_pleasant = data.get("is_pleasant", self.instance.is_pleasant if self.instance else False)

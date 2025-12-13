@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -31,23 +34,43 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 
 class RegisterView(generics.CreateAPIView):
-    """Регистрация нового пользователя"""
+    """
+    Регистрация нового пользователя.
 
-    queryset = User.objects.all()
+    После успешной регистрации автоматически возвращаются JWT токены.
+    """
+
     serializer_class = UserRegisterSerializer
     permission_classes = [permissions.AllowAny]
 
+    @swagger_auto_schema(
+        operation_description="Регистрация нового пользователя",
+        request_body=UserRegisterSerializer,
+        responses={
+            201: openapi.Response(
+                description="Пользователь создан",
+                examples={
+                    "application/json": {
+                        "user": {"id": 1, "username": "ivan", "email": "ivan@example.com"},
+                        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                        "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                    }
+                },
+            ),
+            400: "Ошибка валидации данных",
+        },
+    )
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Генерируем токены
+        # Генерация JWT токенов
         refresh = RefreshToken.for_user(user)
 
         return Response(
             {
-                "user": {"id": user.id, "username": user.username, "email": user.email},
+                "user": UserRegisterSerializer(user, context=self.get_serializer_context()).data,
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
             },
@@ -55,14 +78,23 @@ class RegisterView(generics.CreateAPIView):
         )
 
 
-class UserProfileView(generics.RetrieveUpdateAPIView):
-    """Профиль пользователя"""
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
 
-    serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        """Получение профиля пользователя"""
+        user = request.user
+        serializer = UserProfileSerializer(user)
+        return Response(serializer.data)
 
-    def get_object(self):
-        return self.request.user
+    def patch(self, request):
+        """Обновление профиля пользователя"""
+        user = request.user
+        serializer = UserProfileSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
@@ -70,18 +102,35 @@ class LogoutView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request):
-        try:
-            refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response(status=status.HTTP_205_RESET_CONTENT)
-        except Exception as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(["GET"])
 @permission_classes([permissions.IsAuthenticated])
+@swagger_auto_schema(
+    operation_description="""
+    Генерация уникального кода для подключения Telegram бота.
+
+    Код действителен 10 минут. Для подключения:
+    1. Найдите в Telegram бота @anton_tumashov_bot
+    2. Отправьте команду /start
+    3. Отправьте команду: /connect {ваш_код}
+    """,
+    responses={
+        200: openapi.Response(
+            description="Код сгенерирован",
+            examples={
+                "application/json": {
+                    "code": "abc123xyz",
+                    "bot_username": "anton_tumashov_bot",
+                    "instructions": [
+                        "1. Найдите в Telegram бота @anton_tumashov_bot",
+                        "2. Отправьте команду /start",
+                        "3. Отправьте команду: /connect abc123xyz",
+                    ],
+                }
+            },
+        )
+    },
+)
 def generate_telegram_code(request):
     """Генерация кода для подключения Telegram"""
     from telegram_bot.models import TelegramConnectionCode

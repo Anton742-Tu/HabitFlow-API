@@ -1,12 +1,10 @@
-"""
-Простой работающий тест без зависимостей
-"""
-
 import os
 import sys
 from pathlib import Path
 
 import django
+from django.contrib.auth import get_user_model
+from django.test import TestCase
 
 # Добавляем путь к проекту
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -18,8 +16,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "test_config")
 # Инициализируем Django
 django.setup()
 
-from django.contrib.auth import get_user_model
-from django.test import TestCase
 
 User = get_user_model()
 

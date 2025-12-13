@@ -4,21 +4,115 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения
 load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# Безопасность
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-development-key")
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
+# Важно: НИКОГДА не используйте '*' в production!
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-# Application definition
+# ==================== CORS НАСТРОЙКИ ====================
+
+# Разрешенные origins для фронтенда
+CORS_ALLOWED_ORIGINS = []
+
+# Разрешаем origins из переменной окружения
+if os.getenv("CORS_ALLOWED_ORIGINS"):
+    CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS").split(",")
+
+# В режиме разработки можно разрешить локальные адреса
+if DEBUG:
+    CORS_ALLOWED_ORIGINS.extend(
+        [
+            "http://localhost:3000",  # React dev server
+            "http://127.0.0.1:3000",
+            "http://localhost:8080",  # Vue dev server
+            "http://127.0.0.1:8080",
+            "http://localhost:5173",  # Vite dev server
+            "http://127.0.0.1:5173",
+        ]
+    )
+
+# Разрешать ли все origins в режиме разработки (опасно для production!)
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Только в DEBUG режиме!
+
+# Какие HTTP методы разрешены
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+# Какие HTTP заголовки разрешены
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# Разрешать ли отправку credentials (cookies, auth headers)
+CORS_ALLOW_CREDENTIALS = True
+
+# Для каких URL применять CORS (по умолчанию для всех)
+CORS_URLS_REGEX = r"^/api/.*$"  # Только для API endpoints
+
+# Предзагрузка CORS (preflight) кэширование в секундах
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 часа
+
+# ==================== БЕЗОПАСНОСТЬ ====================
+
+# CSRF защита
+CSRF_TRUSTED_ORIGINS = []
+
+if os.getenv("CSRF_TRUSTED_ORIGINS"):
+    CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
+
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend(
+        [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+        ]
+    )
+
+# Куки безопасность
+CSRF_COOKIE_SECURE = not DEBUG  # Только HTTPS в production
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Lax" if DEBUG else "Strict"
+
+SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax" if DEBUG else "Strict"
+
+# Безопасные заголовки
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# HTTPS редиректы (только в production)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# ==================== INSTALLED APPS ====================
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -33,18 +127,21 @@ INSTALLED_APPS = [
     "drf_yasg",
     "django_filters",
     "corsheaders",
-    "django_celery_beat",  # Для планирования задач
-    "django_celery_results",  # Для хранения результатов
+    "django_celery_beat",
+    "django_celery_results",
     # Local apps
     "habits",
     "users",
     "telegram_bot",
 ]
 
+# ==================== MIDDLEWARE ====================
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "habits.middleware.SecurityHeadersMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -123,7 +220,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# REST Framework
+# REST_FRAMEWORK
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": [
@@ -134,7 +231,27 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
+    # Безопасность API
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",  # Только JSON
+    ],
+    # Включаем только JSON в production
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+    ],
+    # Rate limiting
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {"anon": "100/day", "user": "1000/day"},
 }
+
+# Включаем browsable API только в DEBUG режиме
+if DEBUG:
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append("rest_framework.renderers.BrowsableAPIRenderer")
+    REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append("rest_framework.parsers.FormParser")
+    REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append("rest_framework.parsers.MultiPartParser")
 
 # Simple JWT
 SIMPLE_JWT = {
@@ -212,3 +329,47 @@ if not DEBUG:
             },
         },
     }
+
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT токен в формате: Bearer {token}",
+        }
+    },
+    "USE_SESSION_AUTH": False,
+    "JSON_EDITOR": True,
+    "DEFAULT_INFO": "config.urls.swagger_info",  # Будет создан ниже
+    "DEFAULT_AUTO_SCHEMA_CLASS": "drf_yasg.inspectors.SwaggerAutoSchema",
+    "DEFAULT_FIELD_INSPECTORS": [
+        "drf_yasg.inspectors.CamelCaseJSONFilter",
+        "drf_yasg.inspectors.InlineSerializerInspector",
+        "drf_yasg.inspectors.RelatedFieldInspector",
+        "drf_yasg.inspectors.ChoiceFieldInspector",
+        "drf_yasg.inspectors.FileFieldInspector",
+        "drf_yasg.inspectors.DictFieldInspector",
+        "drf_yasg.inspectors.JSONFieldInspector",
+        "drf_yasg.inspectors.HiddenFieldInspector",
+        "drf_yasg.inspectors.RecursiveFieldInspector",
+        "drf_yasg.inspectors.SerializerMethodFieldInspector",
+        "drf_yasg.inspectors.SimpleFieldInspector",
+        "drf_yasg.inspectors.StringDefaultFieldInspector",
+    ],
+    "DEFAULT_FILTER_INSPECTORS": [
+        "drf_yasg.inspectors.CoreAPICompatInspector",
+    ],
+}
+
+REDOC_SETTINGS = {
+    "LAZY_RENDERING": True,
+    "HIDE_HOSTNAME": False,
+    "EXPAND_RESPONSES": "all",
+    "PATH_IN_MIDDLE": False,
+    "NATIVE_SCROLLBARS": False,
+    "REQUIRED_PROPS_FIRST": True,
+    "SORT_OPERATIONS": False,
+    "SORT_TAGS": True,
+    "SPEC_URL": "openapi.json",
+}

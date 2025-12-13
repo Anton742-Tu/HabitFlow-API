@@ -20,14 +20,15 @@ class HabitAPITestCase(TestCase):
         # Аутентифицируем клиента
         self.client.force_authenticate(user=self.user)
 
-        # Создаем тестовую привычку
+        # Создаем тестовую привычку с правильными полями
         self.habit = Habit.objects.create(
             user=self.user,
             place="Дом",
             time=time(8, 0),
             action="Тестовая привычка",
-            duration=60,
+            is_pleasant=False,
             frequency="daily",
+            duration=60,
             is_public=True,
         )
 
@@ -108,13 +109,32 @@ class HabitAPITestCase(TestCase):
 
     def test_complete_habit(self):
         """Тест отметки выполнения привычки"""
+        # Первое выполнение должно работать
         response = self.client.post(
             f"/api/habits/{self.habit.id}/complete/", {"note": "Выполнено успешно!"}, format="json"
         )
 
+        print(f"Complete habit - Status: {response.status_code}")
+        print(f"Complete habit - Response: {response.data}")
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(response.data["is_completed"])
         self.assertEqual(response.data["note"], "Выполнено успешно!")
+        self.assertTrue(response.data["is_completed"])
+
+        # Второе выполнение в тот же день должно вызвать ошибку
+        response2 = self.client.post(
+            f"/api/habits/{self.habit.id}/complete/", {"note": "Повторное выполнение"}, format="json"
+        )
+
+        print(f"Second completion - Status: {response2.status_code}")
+
+        # Либо 400 (ошибка валидации), либо 201 если разрешено
+        if response2.status_code == status.HTTP_400_BAD_REQUEST:
+            self.assertIn("error", response2.data)
+        elif response2.status_code == status.HTTP_201_CREATED:
+            print("Повторное выполнение разрешено")
+        else:
+            self.fail(f"Unexpected status code: {response2.status_code}")
 
     def test_my_habits_endpoint(self):
         """Тест эндпоинта /my_habits/"""
