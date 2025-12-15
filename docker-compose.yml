@@ -39,8 +39,7 @@ services:
     image: python:3.11-slim  # ← ИЗМЕНИТЕ: используйте образ вместо сборки
     container_name: habitflow-web
     command: >
-      sh -c "pip install -r requirements.txt &&
-             python manage.py migrate &&
+      sh -c  python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app

@@ -140,3 +140,14 @@ docker-compose-ci.yml
 # Логи Docker
 **/docker.log
 **/compose.log
+
+# ============================================
+# Poetry
+# ============================================
+poetry.lock  # ← ВАЖНО: обычно НЕ игнорируется, но если хотите
+.pypoetry/
+.pytest_cache/
+
+# Poetry виртуальные окружения
+.venv/
+.python-version
