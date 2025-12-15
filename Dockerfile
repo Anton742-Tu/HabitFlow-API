@@ -1,35 +1,26 @@
-FROM python:3.12-slim as builder
-
-RUN apt-get update && apt-get install -y \
-    gcc g++ libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY pyproject.toml poetry.lock ./
-
-RUN pip install --no-cache-dir poetry \
-    && poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --without dev --no-root
-
-COPY . .
-
-RUN poetry build -f wheel
-
-# Финальный образ
+﻿# Dockerfile
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip setuptools
 
 WORKDIR /app
 
-COPY --from=builder /app/dist/*.whl /app/
-RUN pip install --no-cache-dir /app/*.whl
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Копируем все скрипты
+COPY scripts/ /scripts/
+RUN chmod +x /scripts/*.py
+
 EXPOSE 8000
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["sh", "-c", "python /scripts/wait_for_db.py && python manage.py migrate && python /scripts/create_superuser.py && python manage.py runserver 0.0.0.0:8000"]

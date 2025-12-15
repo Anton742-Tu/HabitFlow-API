@@ -147,19 +147,19 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="habit",
             constraint=models.CheckConstraint(
-                condition=models.Q(("duration__lte", 120)), name="duration_max_120_seconds"
+                check=models.Q(("duration__lte", 120)), name="duration_max_120_seconds"
             ),
         ),
         migrations.AddConstraint(
             model_name="habit",
             constraint=models.CheckConstraint(
-                condition=models.Q(("is_pleasant", True), ("reward__gt", ""), _negated=True), name="pleasant_no_reward"
+                check=models.Q(("is_pleasant", True), ("reward__gt", ""), _negated=True), name="pleasant_no_reward"
             ),
         ),
         migrations.AddConstraint(
             model_name="habit",
             constraint=models.CheckConstraint(
-                condition=models.Q(("is_pleasant", True), ("related_habit__isnull", False), _negated=True),
+                check=models.Q(("is_pleasant", True), ("related_habit__isnull", False), _negated=True),
                 name="pleasant_no_related",
             ),
         ),

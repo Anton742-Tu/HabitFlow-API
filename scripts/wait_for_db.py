@@ -1,21 +1,17 @@
 import os
 import sys
 import time
-
 import psycopg2
-from django.db import connections
-from django.db.utils import OperationalError
 
 
 def wait_for_db():
-    """Wait for database to be ready"""
     max_retries = 30
     retry_delay = 2
 
     db_config = {
         "dbname": os.environ.get("POSTGRES_DB", "habitflow_db"),
         "user": os.environ.get("POSTGRES_USER", "postgres"),
-        "password": os.environ.get("POSTGRES_PASSWORD", "secure_password_123"),
+        "password": os.environ.get("POSTGRES_PASSWORD", "postgres_password"),
         "host": os.environ.get("POSTGRES_HOST", "db"),
         "port": os.environ.get("POSTGRES_PORT", "5432"),
     }
@@ -30,7 +26,7 @@ def wait_for_db():
             return True
         except psycopg2.OperationalError as e:
             if i < max_retries - 1:
-                print(f"  Attempt {i + 1}/{max_retries}: {str(e)[:50]}...")
+                print(f"  Attempt {i + 1}/{max_retries}: Database not ready yet...")
                 time.sleep(retry_delay)
             else:
                 print(f"❌ PostgreSQL not ready after {max_retries} attempts")
