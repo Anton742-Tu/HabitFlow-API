@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  web:
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Для дебаггера
+    environment:
+      DEBUG: "True"
+      PYTHONDONTWRITEBYTECODE: 1
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .git/
+            - __pycache__/
+            - staticfiles/
+            - media/
+
+  celery_worker:
+    command: celery -A config worker -l info --concurrency=2
+    environment:
+      DEBUG: "True"
+
+  celery_beat:
+    command: celery -A config beat -l info

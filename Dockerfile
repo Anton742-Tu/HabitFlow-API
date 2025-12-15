@@ -1,9 +1,16 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
-# Устанавливаем зависимости для PostgreSQL
-RUN apt-get update \
-    && apt-get install -y gcc postgresql-client \
+# Устанавливаем системные зависимости
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    curl \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
+
+# Создаем пользователя для безопасности
+RUN useradd -m -u 1000 -s /bin/bash django
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -15,13 +22,17 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем проект
-COPY . .
+COPY --chown=django:django . .
 
-# Собираем статические файлы (будет выполнено позже)
-# RUN python manage.py collectstatic --noinput
+# Создаем директории для статики и медиа
+RUN mkdir -p /app/staticfiles /app/media && \
+    chown -R django:django /app
+
+# Переключаемся на непривилегированного пользователя
+USER django
 
 # Открываем порт
 EXPOSE 8000
 
-# Запускаем приложение
-CMD ["gunicorn", "habitflow.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Команда по умолчанию
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

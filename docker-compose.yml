@@ -1,59 +1,82 @@
-# docker-compose.yml
 version: '3.8'
 
 services:
   db:
     image: postgres:15-alpine
+    container_name: habitflow-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-habitflow_db}
       POSTGRES_USER: ${POSTGRES_USER:-habitflow_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-habitflow_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-habitflow_user} -d ${POSTGRES_DB:-habitflow_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - habitflow-network
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
+    container_name: habitflow-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password_123}
     volumes:
       - redis_data:/data
+    ports:
+      - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password_123}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - habitflow-network
 
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.django
+    container_name: habitflow-web
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             python manage.py start_bot &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+             python manage.py start_bot &
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --worker-class sync --access-logfile -"
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
+      - media_volume:/app/media
     environment:
-      - DEBUG=${DEBUG:-False}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - USE_POSTGRESQL=True
-      - POSTGRES_DB=${POSTGRES_DB:-habitflow_db}
-      - POSTGRES_USER=${POSTGRES_USER:-habitflow_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_123}
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Django
+      DEBUG: ${DEBUG:-False}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-habitflow_user}:${POSTGRES_PASSWORD:-secure_password_123}@db:5432/${POSTGRES_DB:-habitflow_db}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_password_123}@redis:6379/0
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-redis_password_123}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-redis_password_123}@redis:6379/2
+      
+      # Telegram
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME}
+      
+      # Other
+      DJANGO_SETTINGS_MODULE: config.settings
+      PYTHONUNBUFFERED: 1
     ports:
       - "8000:8000"
     depends_on:
@@ -61,52 +84,93 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - habitflow-network
+    restart: unless-stopped
 
   celery_worker:
-    build: .
-    command: celery -A config worker -l info
+    build:
+      context: .
+      dockerfile: Dockerfile.django
+    container_name: habitflow-celery-worker
+    command: celery -A config worker -l info --concurrency=4
     volumes:
       - .:/app
     environment:
-      - DEBUG=${DEBUG:-False}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - USE_POSTGRESQL=True
-      - POSTGRES_DB=${POSTGRES_DB:-habitflow_db}
-      - POSTGRES_USER=${POSTGRES_USER:-habitflow_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_123}
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Django
+      DEBUG: ${DEBUG:-False}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_SETTINGS_MODULE: config.settings
+      
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-habitflow_user}:${POSTGRES_PASSWORD:-secure_password_123}@db:5432/${POSTGRES_DB:-habitflow_db}
+      
+      # Redis
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-redis_password_123}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-redis_password_123}@redis:6379/2
+      
+      # Telegram
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      
+      PYTHONUNBUFFERED: 1
     depends_on:
       - redis
       - db
+    networks:
+      - habitflow-network
+    restart: unless-stopped
 
   celery_beat:
-    build: .
-    command: celery -A config beat -l info
+    build:
+      context: .
+      dockerfile: Dockerfile.django
+    container_name: habitflow-celery-beat
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
     environment:
-      - DEBUG=${DEBUG:-False}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - USE_POSTGRESQL=True
-      - POSTGRES_DB=${POSTGRES_DB:-habitflow_db}
-      - POSTGRES_USER=${POSTGRES_USER:-habitflow_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_123}
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # Django
+      DEBUG: ${DEBUG:-False}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_SETTINGS_MODULE: config.settings
+      
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-habitflow_user}:${POSTGRES_PASSWORD:-secure_password_123}@db:5432/${POSTGRES_DB:-habitflow_db}
+      
+      # Redis
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD:-redis_password_123}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD:-redis_password_123}@redis:6379/2
+      
+      PYTHONUNBUFFERED: 1
     depends_on:
       - redis
       - db
+    networks:
+      - habitflow-network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: habitflow-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    networks:
+      - habitflow-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   static_volume:
+  media_volume:
+
+networks:
+  habitflow-network:
+    driver: bridge
