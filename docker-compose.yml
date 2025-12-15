@@ -34,43 +34,30 @@ services:
       retries: 5
     networks:
       - habitflow-network
-
   web:
-    image: python:3.11-slim  # ← ИЗМЕНИТЕ: используйте образ вместо сборки
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: habitflow-web
-    command: >
-      sh -c  python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+    command: python manage.py runserver 0.0.0.0:8000  # ← упростили
     volumes:
       - .:/app
     environment:
-      # Django
       DEBUG: ${DEBUG:-True}
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-me}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
-
-      # Database
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key}
+      POSTGRES_HOST: db
       POSTGRES_DB: ${POSTGRES_DB:-habitflow_db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-
-      # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
-
-      # Telegram
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-
-      # Other
-      DJANGO_SETTINGS_MODULE: config.settings
-      PYTHONUNBUFFERED: 1
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     depends_on:
       - db
       - redis
