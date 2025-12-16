@@ -1,0 +1,61 @@
+﻿# Python
+__pycache__
+*.py[cod]
+*.class
+*.so
+.Python
+venv/
+env/
+.venv/
+.env
+
+# Django
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Temp
+tmp/
+temp/

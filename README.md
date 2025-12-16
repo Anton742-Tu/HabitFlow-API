@@ -1,1 +1,488 @@
-# HabitFlow-API
+# 🚀 HabitFlow API
+
+**HabitFlow API** — это RESTful API для трекера полезных привычек, основанный на методологии **Atomic Habits** (Джеймс Клир). Позволяет пользователям создавать, отслеживать и анализировать свои привычки с соблюдением всех правил из книги.
+
+[![Django](https://img.shields.io/badge/Django-6.0-green.svg)](https://www.djangoproject.com/)
+[![DRF](https://img.shields.io/badge/DRF-3.14-blue.svg)](https://www.django-rest-framework.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
+[![JWT](https://img.shields.io/badge/JWT-Auth-orange.svg)](https://jwt.io/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## ✨ Возможности
+
+- ✅ **JWT аутентификация** (регистрация, вход, обновление токенов)
+- ✅ **CRUD операции** с привычками
+- ✅ **Пагинация** (5 привычек на страницу, настраивается)
+- ✅ **Публичные/приватные привычки**
+- ✅ **Отслеживание выполнения** привычек
+- ✅ **Валидация** по всем правилам Atomic Habits
+- ✅ **Swagger/ReDoc документация**
+- ✅ **PostgreSQL поддержка**
+- ✅ **Docker контейнеризация**
+- ✅ **Полное покрытие тестами**
+
+## 📋 Правила валидации (Atomic Habits)
+
+1. ⏱️ **Время выполнения ≤ 120 секунд** — привычка не должна занимать больше 2 минут
+2. ❌ **Нельзя одновременно указывать и связанную привычку и вознаграждение**
+3. 😊 **Связанные привычки должны быть приятными** — только приятные привычки могут быть связанными
+4. 🎯 **У приятной привычки не может быть вознаграждения или связанной привычки**
+5. 📅 **Нельзя выполнять привычку реже 1 раза в 7 дней**
+6. ⏰ **Нельзя не выполнять привычку более 7 дней**
+
+## 🏗️ Архитектура
+![img_1.png](img_1.png)
+![img_2.png](img_2.png)
+## 🔗 Связи между приложениями
+![img_3.png](img_3.png)
+## 🗂️ Ключевые файлы Telegram интеграции:
+1. Модели данных (telegram_bot/models.py):
+```python
+class TelegramUser(models.Model):           # Связь пользователь ↔ Telegram
+    user = models.OneToOneField(User)       # → users.User
+    chat_id = models.BigIntegerField()      # ID чата в Telegram
+    telegram_username = models.CharField()  # @username в Telegram
+    is_active = models.BooleanField()       # Активны ли уведомления
+
+class TelegramConnectionCode(models.Model): # Коды для подключения
+    user = models.ForeignKey(User)          # → users.User  
+    code = models.CharField()               # Уникальный код (8 символов)
+    expires_at = models.DateTimeField()     # Время жизни кода
+    is_used = models.BooleanField()         # Использован ли код
+```
+2. Сервис отправки сообщений (telegram_bot/services.py):
+```python
+class TelegramBotService:
+    def __init__(self, token):              # Инициализация с токеном бота
+        self.base_url = f"https://api.telegram.org/bot{token}"
+    
+    def send_message(chat_id, text):        # Отправка простого сообщения
+    def send_habit_reminder(chat_id, habit): # Отправка напоминания о привычке
+```
+3. Основной бот (telegram_bot/management/commands/run_bot.py):
+```python
+class Command(BaseCommand):
+    def handle():                           # Основной цикл polling
+    def _process_update():                  # Обработка одного обновления
+    def _handle_message():                  # Обработка команд (/start, /connect и т.д.)
+    def _handle_connect_command():          # Обработка /connect КОД
+    def _handle_status_command():           # Обработка /status
+```
+4. Генерация кода подключения (users/views.py):
+```python
+@api_view(['GET'])
+def generate_telegram_code(request):        # API эндпоинт для кода
+    # Генерирует код и возвращает его пользователю
+    # POSTMAN: GET /api/users/telegram/connect/
+```
+## 🔄 Поток данных:
+```text
+1. ПОЛЬЗОВАТЕЛЬ в веб-приложении:
+   → Нажимает "Подключить Telegram"
+   → GET /api/users/telegram/connect/
+   ← Получает {"code": "abc123xyz"}
+
+2. ПОЛЬЗОВАТЕЛЬ в Telegram:
+   → Находит @anton_tumashov_bot
+   → Отправляет /start
+   → Отправляет /connect abc123xyz
+   → Бот проверяет код в базе
+   → Создает связь user ↔ chat_id
+
+3. СИСТЕМА напоминаний:
+   → Запускается python manage.py run_bot
+   → Бот слушает сообщения 24/7
+   → Задачи Celery/Django отправляют напоминания
+   → TelegramBotService.send_habit_reminder()
+   → Пользователь получает уведомление
+```
+
+## 🚀 Команды для работы:
+```bash
+# Запуск Django сервера
+python manage.py runserver
+
+# Запуск Telegram бота (polling режим)
+python manage.py run_bot
+
+# Тестовые команды
+python manage.py send_test_reminder --user username
+python manage.py send_daily_reports
+python manage.py test_bot_simple
+
+# Администрирование
+python manage.py createsuperuser
+python manage.py makemigrations
+python manage.py migrate
+```
+## 📊 База данных после миграций:
+```text
+Таблицы в PostgreSQL:
+- habits_habit
+- habits_habitcompletion  
+- users_user (или auth_user)
+- telegram_bot_telegramuser          ⭐ НОВАЯ
+- telegram_bot_telegramconnectioncode ⭐ НОВАЯ
+- django_session
+- authtoken_token
+- и другие Django таблицы
+```
+## 🚀 Быстрый старт
+
+### 1. Клонирование и настройка
+
+```bash
+# Клонирование репозитория
+git clone <git@github.com:Anton742-Tu/HabitFlow-API.git>
+cd HabitFlow-API
+
+# Создание виртуального окружения
+python -m venv venv
+
+# Активация (Windows)
+venv\Scripts\activate
+
+# Активация (Linux/Mac)
+source venv/bin/activate
+
+# Установка зависимостей
+pip install -r requirements.txt
+```
+### 2. Настройка базы данных
+#### Вариант A: SQLite (для разработки)
+```bash
+# Настройка .env файла
+cp .env.example .env
+# Отредактируйте .env: USE_POSTGRESQL=False
+
+# Применение миграций
+python manage.py migrate
+
+# Создание суперпользователя
+python manage.py createsuperuser
+```
+#### Вариант B: PostgreSQL (для production)
+```sql
+-- Создание базы данных
+CREATE DATABASE habitflow_db;
+CREATE USER habitflow_user WITH PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE habitflow_db TO habitflow_user;
+```
+```bash
+# Настройка .env
+POSTGRES_DB=habitflow_db
+POSTGRES_USES=postgres
+POSTGRES_PASSWORD=secure_password
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+USE_POSTGRESQL=True
+```
+```
+# Применение миграций
+python manage.py migrate
+```
+### 3. Запуск сервера
+```bash
+# Разработка
+python manage.py runserver
+
+# Production (с Gunicorn)
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
+```
+### 4. Создание тестовых данных
+```bash
+python create_test_data.py
+```
+## 🤖 Интеграция с Telegram
+
+### Как подключить Telegram бота:
+
+1. **Войдите** в веб-приложение HabitFlow
+2. **Перейдите** в профиль → "Подключить Telegram"
+3. **Скопируйте** код подключения
+4. **Откройте** Telegram и найдите бота: @anton_tumashov_bot
+5. **Отправьте** команду: `/connect ВАШ_КОД`
+
+### Команды бота:
+
+- `/start` - Начало работы
+- `/status` - Статус подключения
+- `/stats` - Ваша статистика
+- `/settings` - Настройки уведомлений
+- `/help` - Помощь по командам
+
+### Что вы получите:
+
+✅ **Напоминания** о времени выполнения привычек  
+✅ **Ежедневные отчеты** о вашем прогрессе  
+✅ **Уведомления** о достижениях  
+✅ **Быстрый доступ** к статистике
+
+### Для разработчиков:
+
+- API эндпоинт для кода: `GET /api/users/telegram/connect/`
+- Модели: `TelegramUser`, `TelegramConnectionCode`
+- Команды: `python manage.py run_bot`, `python manage.py send_test_reminder`
+## 📡 API Endpoints
+### 🔐 Аутентификация
+#### Метод	Эндпоинт	Описание
+- POST	/api/users/register/	Регистрация нового пользователя
+- POST	/api/users/token/	Получение JWT токена
+- POST	/api/users/token/refresh/	Обновление токена
+- POST	/api/users/logout/	Выход (blacklist refresh token)
+- GET	/api/users/profile/	Профиль пользователя
+- PATCH	/api/users/profile/	Обновление профиля
+### 📝 Привычки
+#### Метод	Эндпоинт	Описание
+- GET	/api/habits/	Список привычек (пагинация)
+- GET	/api/habits/my_habits/	Только мои привычки
+- GET	/api/habits/public/	Публичные привычки
+- POST	/api/habits/	Создать привычку
+- GET	/api/habits/{id}/	Получить привычку
+- PUT	/api/habits/{id}/	Обновить привычку
+- PATCH	/api/habits/{id}/	Частичное обновление
+- DELETE	/api/habits/{id}/	Удалить привычку
+- POST	/api/habits/{id}/complete/	Отметить выполнение
+- PATCH	/api/habits/{id}/toggle_public/	Переключить публичность
+
+###  ✅ Выполнения привычек
+#### Метод	Эндпоинт	Описание
+- GET	/api/completions/	Список выполнений
+- POST	/api/completions/	Создать выполнение
+- DELETE	/api/completions/{id}/	Удалить выполнение
+## 🔒 Права доступа
+- Владелец привычки: Полный CRUD доступ 
+- Другие пользователи: Только чтение публичных привычек 
+- Неаутентифицированные: Только чтение публичных привычек
+
+## 🧪 Примеры запросов
+### Регистрация пользователя
+```bash
+curl -X POST http://localhost:8000/api/users/register/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john",
+    "email": "john@example.com",
+    "password": "securepass123",
+    "password2": "securepass123"
+  }'
+```
+### Получение токена
+```bash
+curl -X POST http://localhost:8000/api/users/token/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john",
+    "password": "securepass123"
+  }'
+```
+### Создание привычки
+```bash
+curl -X POST http://localhost:8000/api/habits/ \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "place": "Дом",
+    "time": "08:00",
+    "action": "Пить стакан воды",
+    "duration": 60,
+    "frequency": "daily",
+    "is_public": true
+  }'
+```
+### Получение привычек с пагинацией
+```bash
+curl -X GET "http://localhost:8000/api/habits/?page=2&page_size=3" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+## Docker Setup для HabitFlow API
+
+### Настройте окружение для Docker
+
+```bash
+# Способ 1: Используйте готовый пример для Docker
+cp docker-compose.env.example .env
+
+# Способ 2: Сгенерируйте автоматически
+./scripts/generate-env.sh
+
+# Способ 3: Создайте вручную (отредактируйте .env)
+nano .env
+Запустите Docker Compose
+```
+```bash
+docker-compose up -d
+```
+#### Проверьте работу
+
+API: http://localhost/api/
+
+Админка: http://localhost/admin/
+
+Документация: http://localhost/docs/
+
+### Файлы окружения (Файл Назначение)
+- .env.example	Универсальный пример для всех окружений
+- docker-compose.env.example	Специфичный пример ДЛЯ Docker
+- .env	Текущие настройки (не коммитить!)
+- .env.local	Для локальной разработки без Docker
+
+### Переменные окружения для Docker
+#### Обязательные: (env)
+- POSTGRES_HOST=db          # Имя сервиса из docker-compose
+- REDIS_HOST=redis          # Имя сервиса из docker-compose
+- ALLOWED_HOSTS=...,habitflow-web,nginx  # Добавьте имена сервисов
+#### Рекомендуемые для Docker: (env)
+- COMPOSE_PROJECT_NAME=habitflow
+- TELEGRAM_WEBHOOK_URL=http://nginx/api/telegram/webhook/
+- CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+### Команды Docker
+```bash
+# Запуск
+docker-compose up -d
+
+# Остановка
+docker-compose down
+
+# Пересборка
+docker-compose build --no-cache
+
+# Логи
+docker-compose logs -f web
+docker-compose logs -f celery_worker
+
+# Выполнение команд
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py createsuperuser
+Устранение проблем
+"Database is not ready"
+```
+```bash
+# Проверьте health check
+docker-compose ps
+
+# Подождите инициализации
+sleep 10 && docker-compose restart web
+"Host not allowed"
+Добавьте в ALLOWED_HOSTS: habitflow-web,nginx,db,redis
+
+"Connection refused" к БД
+Убедитесь, что используете POSTGRES_HOST=db, а не localhost
+```
+## 🧪 Тестирование
+```bash
+# Запуск всех тестов
+python manage.py test --verbosity=2
+
+# Тесты с покрытием
+coverage run manage.py test
+coverage report
+coverage html
+
+# Запуск конкретных тестов
+python manage.py test habits.tests
+python manage.py test users.tests
+```
+## 📚 Документация
+- Swagger UI: http://localhost:8000/swagger/
+- ReDoc: http://localhost:8000/redoc/
+- Админка Django: http://localhost:8000/admin/
+
+## 🛠️ Разработка
+### Установка для разработки
+```bash
+pip install -r requirements-dev.txt
+pre-commit install
+Code Quality
+bash
+# Форматирование кода
+black .
+isort .
+
+# Проверка стиля
+flake8 .
+
+# Проверка типов
+mypy .
+Git Hooks
+```
+### Проект использует pre-commit hooks для автоматической проверки кода:
+
+- black (форматирование)
+- isort (сортировка импортов)
+- flake8 (стиль кода)
+- mypy (проверка типов)
+
+## 🔧 Настройки окружения (.env)
+
+### Telegram Bot
+- TELEGRAM_BOT_TOKEN=7665832286:ваш_токен_от_BotFather
+- TELEGRAM_BOT_USERNAME=anton_tumashov_bot
+- TELEGRAM_WEBHOOK_URL=https://ваш-домен.com/webhook/  # Для production
+### Celery (для будущего)
+- CELERY_BROKER_URL=redis://localhost:6379/0
+
+### Django
+- DEBUG=True
+- SECRET_KEY=ваш_secret_key
+- DATABASE_URL=postgres://...
+
+### Database
+- USE_POSTGRESQL=False
+- POSTGRES_DB=habitflow_db
+- POSTGRES_USER=postgres
+- POSTGRES_PASSWORD=secure_password
+- POSTGRES_HOST=localhost
+- POSTGRES_PORT=5432
+
+### JWT
+- JWT_ACCESS_TOKEN_LIFETIME=86400  # 1 день
+- JWT_REFRESH_TOKEN_LIFETIME=604800  # 7 дней
+
+### Pagination
+- DEFAULT_PAGE_SIZE=5
+- MAX_PAGE_SIZE=50
+## 📊 Модели данных
+### Habit (Привычка)
+```python
+{
+    "id": 1,
+    "user": 1,
+    "place": "Дом",
+    "time": "08:00",
+    "action": "Пить воду",
+    "is_pleasant": false,
+    "related_habit": null,
+    "frequency": "daily",
+    "reward": "",
+    "duration": 60,
+    "is_public": true,
+    "created_at": "2024-01-15T08:00:00Z",
+    "full_description": "Я буду пить воду в 08:00 в дом"
+}
+```
+HabitCompletion (Выполнение привычки)
+```python
+{
+    "id": 1,
+    "habit": 1,
+    "completed_at": "2024-01-15T08:05:00Z",
+    "is_completed": true,
+    "note": "Выполнено успешно!"
+}
+```
+## 🤝 Вклад в проект
+- Форкните репозиторий 
+- Создайте ветку для вашей фичи (git checkout -b feature/amazing-feature)
+- Закоммитьте изменения (git commit -m 'Add amazing feature')
+- Запушьте ветку (git push origin feature/amazing-feature)
+- Откройте Pull Request
+
+## 📄 Лицензия
+Этот проект лицензирован под MIT License - смотрите файл LICENSE для деталей.
+
+## 👥 Авторы
+- Anton-Tu - Разработчик и идейный вдохновитель 
+- Джеймс Клир - Автор методологии Atomic Habits
+
+HabitFlow API © 2024. Разработано с ❤️ для трекинга полезных привычек.

@@ -1,0 +1,153 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Virtual Environment
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+!.env.example
+.envrc
+
+# Database backups
+*.dump
+*.backup
+
+# OS
+Thumbs.db
+
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Coverage
+.coverage.*
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Images
+img_1.png
+img_2.png
+img_3.png
+
+# ============================================
+# Docker (ДОБАВЛЕНО)
+# ============================================
+
+# Docker Compose
+docker-compose.override.yml
+docker-compose.prod.yml
+docker-compose.staging.yml
+
+# Docker volumes
+**/pgdata/
+**/redis-data/
+**/postgres_data/
+**/mysql_data/
+
+# Docker временные файлы
+.dockerignore.local
+
+# Docker сетевые файлы
+docker-compose-network.yml
+
+# Docker тестовые/временные файлы
+docker-compose-test.yml
+docker-compose-ci.yml
+
+# Логи Docker
+**/docker.log
+**/compose.log
+# ============================================
+# Docker
+# ============================================
+
+# Docker Compose
+docker-compose.override.yml
+docker-compose.prod.yml
+docker-compose.staging.yml
+
+# Docker volumes
+**/pgdata/
+**/redis-data/
+**/postgres_data/
+**/mysql_data/
+
+# Docker временные файлы
+.dockerignore.local
+
+# Docker сетевые файлы
+docker-compose-network.yml
+
+# Docker тестовые/временные файлы
+docker-compose-test.yml
+docker-compose-ci.yml
+
+# Логи Docker
+**/docker.log
+**/compose.log
+
+# ============================================
+# Poetry
+# ============================================
+poetry.lock  # ← ВАЖНО: обычно НЕ игнорируется, но если хотите
+.pypoetry/
+.pytest_cache/
+
+# Poetry виртуальные окружения
+.venv/
+.python-version
