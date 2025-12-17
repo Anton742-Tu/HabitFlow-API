@@ -31,4 +31,4 @@ EXPOSE 8000
 CMD ["sh", "-c", "python /scripts/wait_for_db.py && python manage.py migrate && python /scripts/create_superuser.py && python manage.py runserver 0.0.0.0:8000"]
 
 # Устанавливает переменную окружения, которая гарантирует, что вывод из python будет отправлен прямо в терминал без предварительной буферизации
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
