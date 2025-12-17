@@ -42,7 +42,7 @@
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     environment:
-      DEBUG: "False"  # В production через Nginx лучше отключить DEBUG
+      DEBUG: "True"  # временно включите для отладки
       DJANGO_SECRET_KEY: django-insecure-production-key-change-me
       POSTGRES_HOST: db
       POSTGRES_DB: habitflow_db
@@ -50,7 +50,7 @@
       POSTGRES_PASSWORD: postgres_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      ALLOWED_HOSTS: localhost,127.0.0.1,web,nginx
+      ALLOWED_HOSTS: localhost,127.0.0.1,web,nginx,158.160.207.244
     expose:
       - "8000"  # Открываем порт только для других контейнеров
     depends_on:
@@ -61,13 +61,9 @@
     image: nginx:1.25-alpine
     container_name: habitflow-nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
     volumes:
-      - type: bind
-        source: ./nginx.conf
-        target: /etc/nginx/nginx.conf
-        read_only: true
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/html:/usr/share/nginx/html:ro
       - static_volume:/app/staticfiles:ro

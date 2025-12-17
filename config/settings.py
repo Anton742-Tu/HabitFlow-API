@@ -95,6 +95,12 @@ if DEBUG:
 CSRF_COOKIE_SECURE = not DEBUG  # Только HTTPS в production
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax" if DEBUG else "Strict"
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+    f'http://{IP_ВМ}:8080',
+    f'https://{IP_ВМ}:8443',
+]
 
 SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
