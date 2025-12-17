@@ -1,34 +1,80 @@
 ﻿services:
   db:
     image: postgres:15-alpine
+    container_name: habitflow-postgres
     environment:
       POSTGRES_DB: habitflow_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres_password
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: habitflow-redis
+    ports:
+      - "6379:6379"
 
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    container_name: habitflow-web
+    command: >
+      sh -c "
+      echo '=== HabitFlow API ===' &&
+      echo 'Waiting for database...' &&
+      sleep 5 &&
+      echo 'Collecting static files...' &&
+      python manage.py collectstatic --noinput &&
+      echo 'Applying migrations...' &&
+      python manage.py migrate &&
+      echo 'Starting server...' &&
+      python manage.py runserver 0.0.0.0:8000
+      "
     volumes:
       - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     environment:
-      DEBUG: "True"
-      DJANGO_SECRET_KEY: test-key-123
+      DEBUG: "False"  # В production через Nginx лучше отключить DEBUG
+      DJANGO_SECRET_KEY: django-insecure-production-key-change-me
       POSTGRES_HOST: db
       POSTGRES_DB: habitflow_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres_password
-      DJANGO_SUPERUSER_USERNAME: admin
-      DJANGO_SUPERUSER_EMAIL: admin@example.com
-      DJANGO_SUPERUSER_PASSWORD: admin123
-    ports:
-      - "8000:8000"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ALLOWED_HOSTS: localhost,127.0.0.1,web,nginx
+    expose:
+      - "8000"  # Открываем порт только для других контейнеров
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: habitflow-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    depends_on:
+      - web
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  static_volume:
+  media_volume:
