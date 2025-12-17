@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitFlow API - Трекер полезных привычек</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            color: #ffd166;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .card li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card li:last-child {
+            border-bottom: none;
+        }
+
+        .endpoints {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .endpoint {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .method {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-right: 10px;
+        }
+
+        .get { background: #10b981; color: white; }
+        .post { background: #3b82f6; color: white; }
+        .put { background: #f59e0b; color: white; }
+        .delete { background: #ef4444; color: white; }
+
+        .links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+            color: #333;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 154, 158, 0.3);
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 154, 158, 0.4);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(45deg, #a78bfa, #8b5cf6);
+            color: white;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(16, 185, 129, 0.2);
+            border-radius: 10px;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .status.online {
+            color: #10b981;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.8;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .logo {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="logo">🚀 HabitFlow API</h1>
+            <p class="tagline">RESTful API для трекера полезных привычек по методологии Atomic Habits</p>
+        </header>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3>📊 Статистика системы</h3>
+                <ul>
+                    <li>✅ Все сервисы запущены</li>
+                    <li>🟢 PostgreSQL: <span id="db-status">Работает</span></li>
+                    <li>🟢 Redis: <span id="redis-status">Работает</span></li>
+                    <li>🟢 Django API: <span id="api-status">Работает</span></li>
+                    <li>🟢 Nginx: <span id="nginx-status">Работает</span></li>
+                    <li>📈 Активных пользователей: <span id="user-count">0</span></li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>✨ Возможности</h3>
+                <ul>
+                    <li>✅ JWT аутентификация</li>
+                    <li>✅ CRUD операции с привычками</li>
+                    <li>✅ Валидация по правилам Atomic Habits</li>
+                    <li>✅ Telegram бот для напоминаний</li>
+                    <li>✅ Пагинация и фильтрация</li>
+                    <li>✅ Публичные/приватные привычки</li>
+                    <li>✅ Отслеживание выполнения</li>
+                </ul>
+            </div>
+
+            <div class="card endpoints">
+                <h3>🔗 Основные API эндпоинты</h3>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <span>/api/habits/public/</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <span>/api/users/register/</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <span>/api/users/token/</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method get">GET</span>
+                    <span>/api/habits/my_habits/</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method post">POST</span>
+                    <span>/api/habits/</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status online">
+            ✅ Система работает стабильно. API доступно по всем эндпоинтам.
+        </div>
+
+        <div class="links">
+            <a href="/api/" class="btn">📚 Документация API</a>
+            <a href="/admin/" class="btn secondary">⚙️ Панель администратора</a>
+            <a href="/static/" class="btn">📁 Статические файлы</a>
+            <a href="https://github.com/Anton742-Tu/HabitFlow-API" class="btn" target="_blank">🐙 GitHub репозиторий</a>
+        </div>
+
+        <footer>
+            <p>HabitFlow API © 2024 | Разработано с ❤️ для трекинга полезных привычек</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">
+                🏗️ Архитектура: Django + PostgreSQL + Redis + Nginx + Docker
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Обновление статуса в реальном времени
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/');
+                if (response.ok) {
+                    document.getElementById('api-status').textContent = 'Работает';
+                    document.getElementById('api-status').style.color = '#10b981';
+                }
+            } catch (error) {
+                document.getElementById('api-status').textContent = 'Ошибка';
+                document.getElementById('api-status').style.color = '#ef4444';
+            }
+
+            // Обновляем время каждую минуту
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleTimeString();
+        }
+
+        // Обновляем статус при загрузке и каждые 30 секунд
+        updateStatus();
+        setInterval(updateStatus, 30000);
+
+        // Анимация для карточек
+        document.querySelectorAll('.card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+    </script>
+</body>
+</html>

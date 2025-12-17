@@ -2,14 +2,15 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
-#from drf_yasg import openapi
-#from drf_yasg.views import get_schema_view
+
+# from drf_yasg import openapi
+# from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
 from docs.views import APIDocumentationView, api_spec_json
 
 # Настройка Swagger документации
-#schema_view = get_schema_view(
+# schema_view = get_schema_view(
 #    openapi.Info(
 #        title="HabitFlow API",
 #        default_version="v1",
@@ -48,23 +49,23 @@ from docs.views import APIDocumentationView, api_spec_json
 #    ),
 #    public=True,
 #    permission_classes=(permissions.AllowAny,),
-#)
+# )
 
 urlpatterns = [
     # Админка Django
     path("admin/", admin.site.urls),
     # API документация
-    #path("", RedirectView.as_view(url="/swagger/", permanent=False)),
-    #path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
-    #path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
-    #path("openapi.json", schema_view.without_ui(cache_timeout=0), name="schema-json"),
+    # path("", RedirectView.as_view(url="/swagger/", permanent=False)),
+    # path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
+    # path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
+    # path("openapi.json", schema_view.without_ui(cache_timeout=0), name="schema-json"),
     # API endpoints
     path("api/", include("users.urls")),
     path("api/", include("habits.urls")),
     path("telegram/", include("telegram_bot.urls")),
     # Дополнительная документация
-    #path("docs/", APIDocumentationView.as_view(), name="api-docs"),
-    #path("docs/spec.json", api_spec_json, name="api-spec-json"),
+    # path("docs/", APIDocumentationView.as_view(), name="api-docs"),
+    # path("docs/spec.json", api_spec_json, name="api-spec-json"),
 ]
 
 # Для дебага включаем статику
