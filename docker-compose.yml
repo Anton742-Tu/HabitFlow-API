@@ -1,112 +1,82 @@
-# docker-compose.yml
-version: '3.8'
-
-services:
+﻿services:
   db:
     image: postgres:15-alpine
+    container_name: habitflow-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-habitflow_db}
-      POSTGRES_USER: ${POSTGRES_USER:-habitflow_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_123}
+      POSTGRES_DB: habitflow_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-habitflow_user}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
+    container_name: habitflow-redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   web:
     build: .
+    container_name: habitflow-web
     command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             python manage.py start_bot &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+      sh -c "
+      echo '=== HabitFlow API ===' &&
+      echo 'Waiting for database...' &&
+      sleep 5 &&
+      echo 'Collecting static files...' &&
+      python manage.py collectstatic --noinput &&
+      echo 'Applying migrations...' &&
+      python manage.py migrate &&
+      echo 'Starting server...' &&
+      python manage.py runserver 0.0.0.0:8000
+      "
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
+      - media_volume:/app/media
     environment:
-      - DEBUG=${DEBUG:-False}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - USE_POSTGRESQL=True
-      - POSTGRES_DB=${POSTGRES_DB:-habitflow_db}
-      - POSTGRES_USER=${POSTGRES_USER:-habitflow_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_123}
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    ports:
-      - "8000:8000"
+      DEBUG: "False"  # В production через Nginx лучше отключить DEBUG
+      DJANGO_SECRET_KEY: django-insecure-production-key-change-me
+      POSTGRES_HOST: db
+      POSTGRES_DB: habitflow_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ALLOWED_HOSTS: localhost,127.0.0.1,web,nginx
+    expose:
+      - "8000"  # Открываем порт только для других контейнеров
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
 
-  celery_worker:
-    build: .
-    command: celery -A config worker -l info
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: habitflow-nginx
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - .:/app
-    environment:
-      - DEBUG=${DEBUG:-False}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - USE_POSTGRESQL=True
-      - POSTGRES_DB=${POSTGRES_DB:-habitflow_db}
-      - POSTGRES_USER=${POSTGRES_USER:-habitflow_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_123}
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
     depends_on:
-      - redis
-      - db
-
-  celery_beat:
-    build: .
-    command: celery -A config beat -l info
-    volumes:
-      - .:/app
-    environment:
-      - DEBUG=${DEBUG:-False}
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - USE_POSTGRESQL=True
-      - POSTGRES_DB=${POSTGRES_DB:-habitflow_db}
-      - POSTGRES_USER=${POSTGRES_USER:-habitflow_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_123}
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    depends_on:
-      - redis
-      - db
+      - web
+    restart: unless-stopped
 
 volumes:
   postgres_data:
-  redis_data:
   static_volume:
+  media_volume:

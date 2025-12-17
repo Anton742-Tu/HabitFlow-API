@@ -124,11 +124,11 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    "drf_yasg",
+    #    "drf_yasg",
     "django_filters",
     "corsheaders",
-    "django_celery_beat",
-    "django_celery_results",
+    #    "django_celery_beat",
+    #    "django_celery_results",
     # Local apps
     "habits",
     "users",
@@ -214,7 +214,9 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "static/"
+MEDIA_URL = "/media/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_ROOT = BASE_DIR / "media"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Default primary key field type

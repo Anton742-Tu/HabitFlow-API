@@ -1,27 +1,33 @@
-FROM python:3.11-slim
+﻿FROM python:3.12-slim
 
-# Устанавливаем зависимости для PostgreSQL
-RUN apt-get update \
-    && apt-get install -y gcc postgresql-client \
+# Или если конфиг в папке nginx/
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+
+
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем рабочую директорию
+RUN pip install --upgrade pip setuptools
+
 WORKDIR /app
 
-# Копируем зависимости
 COPY requirements.txt .
-
-# Устанавливаем Python зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем проект
 COPY . .
 
-# Собираем статические файлы (будет выполнено позже)
-# RUN python manage.py collectstatic --noinput
+# Копируем все скрипты
+COPY scripts/ /scripts/
+RUN chmod +x /scripts/*.py
 
-# Открываем порт
 EXPOSE 8000
 
-# Запускаем приложение
-CMD ["gunicorn", "habitflow.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["sh", "-c", "python /scripts/wait_for_db.py && python manage.py migrate && python /scripts/create_superuser.py && python manage.py runserver 0.0.0.0:8000"]
+
+# Устанавливает переменную окружения, которая гарантирует, что вывод из python будет отправлен прямо в терминал без предварительной буферизации
+ENV PYTHONUNBUFFERED 1

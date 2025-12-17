@@ -27,6 +27,11 @@ venv.bak/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.development
+!.env.example
+.envrc
 
 # Database backups
 *.dump
@@ -74,6 +79,75 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Images
 img_1.png
 img_2.png
 img_3.png
+
+# ============================================
+# Docker (ДОБАВЛЕНО)
+# ============================================
+
+# Docker Compose
+docker-compose.override.yml
+docker-compose.prod.yml
+docker-compose.staging.yml
+
+# Docker volumes
+**/pgdata/
+**/redis-data/
+**/postgres_data/
+**/mysql_data/
+
+# Docker временные файлы
+.dockerignore.local
+
+# Docker сетевые файлы
+docker-compose-network.yml
+
+# Docker тестовые/временные файлы
+docker-compose-test.yml
+docker-compose-ci.yml
+
+# Логи Docker
+**/docker.log
+**/compose.log
+# ============================================
+# Docker
+# ============================================
+
+# Docker Compose
+docker-compose.override.yml
+docker-compose.prod.yml
+docker-compose.staging.yml
+
+# Docker volumes
+**/pgdata/
+**/redis-data/
+**/postgres_data/
+**/mysql_data/
+
+# Docker временные файлы
+.dockerignore.local
+
+# Docker сетевые файлы
+docker-compose-network.yml
+
+# Docker тестовые/временные файлы
+docker-compose-test.yml
+docker-compose-ci.yml
+
+# Логи Docker
+**/docker.log
+**/compose.log
+
+# ============================================
+# Poetry
+# ============================================
+poetry.lock  # ← ВАЖНО: обычно НЕ игнорируется, но если хотите
+.pypoetry/
+.pytest_cache/
+
+# Poetry виртуальные окружения
+.venv/
+.python-version

@@ -295,42 +295,79 @@ curl -X POST http://localhost:8000/api/habits/ \
 curl -X GET "http://localhost:8000/api/habits/?page=2&page_size=3" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
-## 🐳 Docker развертывание
-### 1. Запуск с Docker Compose
-```bash
-# Запуск всех сервисов
-docker-compose up -d
+## Docker Setup для HabitFlow API
 
-# Просмотр логов
-docker-compose logs -f
+### Настройте окружение для Docker
+
+```bash
+# Способ 1: Используйте готовый пример для Docker
+cp docker-compose.env.example .env
+
+# Способ 2: Сгенерируйте автоматически
+./scripts/generate-env.sh
+
+# Способ 3: Создайте вручную (отредактируйте .env)
+nano .env
+Запустите Docker Compose
+```
+```bash
+docker-compose up -d
+```
+#### Проверьте работу
+
+API: http://localhost/api/
+
+Админка: http://localhost/admin/
+
+Документация: http://localhost/docs/
+
+### Файлы окружения (Файл Назначение)
+- .env.example	Универсальный пример для всех окружений
+- docker-compose.env.example	Специфичный пример ДЛЯ Docker
+- .env	Текущие настройки (не коммитить!)
+- .env.local	Для локальной разработки без Docker
+
+### Переменные окружения для Docker
+#### Обязательные: (env)
+- POSTGRES_HOST=db          # Имя сервиса из docker-compose
+- REDIS_HOST=redis          # Имя сервиса из docker-compose
+- ALLOWED_HOSTS=...,habitflow-web,nginx  # Добавьте имена сервисов
+#### Рекомендуемые для Docker: (env)
+- COMPOSE_PROJECT_NAME=habitflow
+- TELEGRAM_WEBHOOK_URL=http://nginx/api/telegram/webhook/
+- CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+### Команды Docker
+```bash
+# Запуск
+docker-compose up -d
 
 # Остановка
 docker-compose down
+
+# Пересборка
+docker-compose build --no-cache
+
+# Логи
+docker-compose logs -f web
+docker-compose logs -f celery_worker
+
+# Выполнение команд
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py createsuperuser
+Устранение проблем
+"Database is not ready"
 ```
-### 2. Docker Compose файл
-```yaml
-version: '3.8'
-services:
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: habitflow_db
-      POSTGRES_USER: habitflow_user
-      POSTGRES_PASSWORD: secure_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    
-  web:
-    build: .
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn habitflow.wsgi:application --bind 0.0.0.0:8000"
-    environment:
-      - USE_POSTGRESQL=True
-      - POSTGRES_HOST=db
-    depends_on:
-      - db
+```bash
+# Проверьте health check
+docker-compose ps
+
+# Подождите инициализации
+sleep 10 && docker-compose restart web
+"Host not allowed"
+Добавьте в ALLOWED_HOSTS: habitflow-web,nginx,db,redis
+
+"Connection refused" к БД
+Убедитесь, что используете POSTGRES_HOST=db, а не localhost
 ```
 ## 🧪 Тестирование
 ```bash

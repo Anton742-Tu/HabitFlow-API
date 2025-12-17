@@ -83,16 +83,16 @@ class Habit(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="duration_max_120_seconds",
-                condition=models.Q(duration__lte=settings.HABIT_VALIDATION["MAX_DURATION_SECONDS"]),
+                check=models.Q(duration__lte=settings.HABIT_VALIDATION["MAX_DURATION_SECONDS"]),
             ),
             # Ограничение: у приятной привычки не может быть вознаграждения
             models.CheckConstraint(
-                name="pleasant_no_reward", condition=~(models.Q(is_pleasant=True) & models.Q(reward__gt=""))
+                name="pleasant_no_reward", check=~(models.Q(is_pleasant=True) & models.Q(reward__gt=""))
             ),
             # Ограничение: у приятной привычки не может быть связанной привычки
             models.CheckConstraint(
                 name="pleasant_no_related",
-                condition=~(models.Q(is_pleasant=True) & models.Q(related_habit__isnull=False)),
+                check=~(models.Q(is_pleasant=True) & models.Q(related_habit__isnull=False)),
             ),
         ]
 
