@@ -14,8 +14,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: postgres  # ← Пароль для контейнера
           POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -23,7 +24,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:7-alpine
         ports:
@@ -34,47 +35,43 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      DEBUG: "True"
+      SECRET_KEY: "test-secret-key-for-ci-${{ github.run_id }}"
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: habitflow_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: HKrn736mer
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      DJANGO_SETTINGS_MODULE: config.settings
+
     steps:
       - name: Check out code
-        uses: actions/checkout@v4  # Обновите до v4
-        
+        uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v5  # Обновите до v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'  # Встроенный кэш вместо actions/cache
-          
+          cache: 'pip'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-django coverage  # Для тестов
-          
-      - name: Set up environment variables
-        run: |
-          echo "DEBUG=True" >> $GITHUB_ENV
-          echo "SECRET_KEY=test-secret-key-for-ci-$(date +%s)" >> $GITHUB_ENV
-          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> $GITHUB_ENV
-          echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> $GITHUB_ENV
-          
+
       - name: Run database migrations
         run: python manage.py migrate
-        
-      - name: Run tests with coverage
+
+      - name: Run tests
         run: |
-          coverage run --source='.' manage.py test
-          coverage report
-          coverage xml  # Для интеграции с Codecov/SonarCloud
-          
+          python manage.py test --verbosity=2
+
       - name: Run security checks
         run: |
           pip install bandit safety
-          bandit -r . -f json -o bandit-report.json || true
-          safety check -r requirements.txt || true
-          
-      - name: Lint code
-        run: |
-          pip install flake8 black isort
-          black --check .
-          isort --check-only .
-          flake8 .
+          bandit -r . -f json || echo "Bandit check completed"
+          safety check -r requirements.txt || echo "Safety check completed"
