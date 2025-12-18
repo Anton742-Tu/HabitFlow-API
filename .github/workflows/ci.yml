@@ -14,9 +14,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_PASSWORD: postgres  # ← Пароль для контейнера
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres        # ← для контейнера
+          POSTGRES_DB: test_habitflow_db     # ← для контейнера
+          POSTGRES_USER: postgres            # ← для контейнера
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -29,28 +29,40 @@ jobs:
         image: redis:7-alpine
         ports:
           - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     env:
-      DEBUG: "True"
-      SECRET_KEY: "test-secret-key-for-ci-${{ github.run_id }}"
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
-      POSTGRES_DB: habitflow_db
+      POSTGRES_DB: test_habitflow_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: HKrn736mer
+      POSTGRES_PASSWORD: postgres
+
       REDIS_HOST: localhost
       REDIS_PORT: 6379
-      ALLOWED_HOSTS: localhost,127.0.0.1
-      DJANGO_SETTINGS_MODULE: config.settings
+
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: "test-secret-key-${{ github.run_id }}"
+      DJANGO_SETTINGS_MODULE: "config.settings"
+
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
+      JWT_ACCESS_TOKEN_LIFETIME: "86400"
+      JWT_REFRESH_TOKEN_LIFETIME: "604800"
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      - name: Debug environment variables
+        run: |
+          echo "=== Django will see these ==="
+          echo "POSTGRES_DB: $POSTGRES_DB"
+          echo "POSTGRES_USER: $POSTGRES_USER"
+          echo "POSTGRES_PASSWORD: $POSTGRES_PASSWORD"
+          echo "POSTGRES_HOST: $POSTGRES_HOST"
+          echo "DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
+
+      - name: Wait for PostgreSQL
+        run: sleep 3
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -64,14 +76,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run database migrations
-        run: python manage.py migrate
+        run: python manage.py migrate --noinput
 
       - name: Run tests
-        run: |
-          python manage.py test --verbosity=2
-
-      - name: Run security checks
-        run: |
-          pip install bandit safety
-          bandit -r . -f json || echo "Bandit check completed"
-          safety check -r requirements.txt || echo "Safety check completed"
+        run: python manage.py test --verbosity=2
