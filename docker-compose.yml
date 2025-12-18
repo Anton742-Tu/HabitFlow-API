@@ -27,6 +27,8 @@
     container_name: habitflow-web
     command: >
       sh -c "
+      export DJANGO_SETTINGS_MODULE=config.settings &&
+      export PYTHONPATH=/app &&
       echo '=== HabitFlow API ===' &&
       echo 'Waiting for database...' &&
       sleep 5 &&
@@ -34,14 +36,16 @@
       python manage.py collectstatic --noinput &&
       echo 'Applying migrations...' &&
       python manage.py migrate &&
-      echo 'Starting server...' &&
-      python manage.py runserver 0.0.0.0:8000
+      echo 'Starting Gunicorn...' &&
+      gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2
       "
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     environment:
+      DJANGO_SETTINGS_MODULE: config.settings
+      PYTHONPATH: /app
       DEBUG: "True"  # временно включите для отладки
       DJANGO_SECRET_KEY: django-insecure-production-key-change-me
       POSTGRES_HOST: db
