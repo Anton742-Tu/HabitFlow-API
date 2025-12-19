@@ -11,11 +11,15 @@ class TestModelsComplete(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(username="testuser", password="pass123")
-        self.habit = Habit.objects.create(user=self.user, action="Test Action", time="09:00:00", place="Home")
+        self.habit = Habit.objects.create(
+            user=self.user, action="Test Action", time="09:00:00", place="Home"
+        )
 
     def test_habit_completion_creation(self):
         """Тест создания выполнения привычки"""
-        completion = HabitCompletion.objects.create(habit=self.habit, is_completed=True, note="Тестовое выполнение")
+        completion = HabitCompletion.objects.create(
+            habit=self.habit, is_completed=True, note="Тестовое выполнение"
+        )
 
         self.assertEqual(completion.habit, self.habit)
         self.assertTrue(completion.is_completed)

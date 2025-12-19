@@ -17,7 +17,11 @@ from rest_framework.response import Response
 
 from .models import Habit, HabitCompletion
 from .permissions import HabitCompletionPermission, HabitPermission
-from .serializers import HabitCompletionSerializer, HabitSerializer, PublicHabitSerializer
+from .serializers import (
+    HabitCompletionSerializer,
+    HabitSerializer,
+    PublicHabitSerializer,
+)
 
 
 def filter_has_completions_today(queryset, name, value):
@@ -36,7 +40,9 @@ def filter_min_completions(queryset, name, value):
     """Фильтр по минимальному количеству выполнений"""
     from django.db.models import Count
 
-    return queryset.annotate(completion_count=Count("completions")).filter(completion_count__gte=value)
+    return queryset.annotate(completion_count=Count("completions")).filter(
+        completion_count__gte=value
+    )
 
 
 def filter_last_completed_before(queryset, name, value):
@@ -60,7 +66,9 @@ def filter_last_completed_after(queryset, name, value):
 class HabitFilter(FilterSet):
     """Фильтр для привычек с дополнительными полями"""
 
-    date_from = DateFilter(field_name="created_at", lookup_expr="gte")  # ⬅️ DateFilter из django_filters
+    date_from = DateFilter(
+        field_name="created_at", lookup_expr="gte"
+    )  # ⬅️ DateFilter из django_filters
     date_to = DateFilter(field_name="created_at", lookup_expr="lte")
     has_completions_today = BooleanFilter(method="filter_has_completions_today")
     min_completions = NumberFilter(method="filter_min_completions")
@@ -92,7 +100,9 @@ class HabitFilter(FilterSet):
         """Фильтр по минимальному количеству выполнений"""
         from django.db.models import Count
 
-        return queryset.annotate(completion_count=Count("completions")).filter(completion_count__gte=value)
+        return queryset.annotate(completion_count=Count("completions")).filter(
+            completion_count__gte=value
+        )
 
 
 class StandardPagination(PageNumberPagination):
@@ -131,7 +141,12 @@ class HabitViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_description="Список привычек с пагинацией и фильтрацией",
         manual_parameters=[
-            openapi.Parameter("page", openapi.IN_QUERY, description="Номер страницы", type=openapi.TYPE_INTEGER),
+            openapi.Parameter(
+                "page",
+                openapi.IN_QUERY,
+                description="Номер страницы",
+                type=openapi.TYPE_INTEGER,
+            ),
             openapi.Parameter(
                 "page_size",
                 openapi.IN_QUERY,
@@ -139,7 +154,10 @@ class HabitViewSet(viewsets.ModelViewSet):
                 type=openapi.TYPE_INTEGER,
             ),
             openapi.Parameter(
-                "is_pleasant", openapi.IN_QUERY, description="Фильтр по типу привычки", type=openapi.TYPE_BOOLEAN
+                "is_pleasant",
+                openapi.IN_QUERY,
+                description="Фильтр по типу привычки",
+                type=openapi.TYPE_BOOLEAN,
             ),
             openapi.Parameter(
                 "frequency",
@@ -149,7 +167,10 @@ class HabitViewSet(viewsets.ModelViewSet):
                 enum=["daily", "weekly", "monthly"],
             ),
             openapi.Parameter(
-                "is_public", openapi.IN_QUERY, description="Фильтр по публичности", type=openapi.TYPE_BOOLEAN
+                "is_public",
+                openapi.IN_QUERY,
+                description="Фильтр по публичности",
+                type=openapi.TYPE_BOOLEAN,
             ),
         ],
     )
@@ -206,13 +227,19 @@ class HabitViewSet(viewsets.ModelViewSet):
             )
 
         # Для неаутентифицированных пользователей - только публичные привычки
-        return Habit.objects.filter(is_public=True).select_related("user").prefetch_related("completions")
+        return (
+            Habit.objects.filter(is_public=True)
+            .select_related("user")
+            .prefetch_related("completions")
+        )
 
     def perform_create(self, serializer):
         """При создании привычки автоматически устанавливаем владельца"""
         serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
     def complete(self, request, pk=None):
         """Отметить выполнение привычки (только для владельца)"""
         habit = self.get_object()
@@ -220,20 +247,29 @@ class HabitViewSet(viewsets.ModelViewSet):
         # Проверяем, что привычка принадлежит пользователю
         if habit.user != request.user:
             return Response(
-                {"error": "Вы не можете отмечать выполнение чужих привычек."}, status=status.HTTP_403_FORBIDDEN
+                {"error": "Вы не можете отмечать выполнение чужих привычек."},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # Проверяем, можно ли выполнять привычку сегодня
         if not habit.can_be_completed_today():
             return Response(
-                {"error": "Выполнять эту привычку можно только раз в указанный период."},
+                {
+                    "error": "Выполнять эту привычку можно только раз в указанный период."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Создаем запись о выполнении
-        completion_data = {"habit": habit.id, "is_completed": True, "note": request.data.get("note", "")}
+        completion_data = {
+            "habit": habit.id,
+            "is_completed": True,
+            "note": request.data.get("note", ""),
+        }
 
-        serializer = HabitCompletionSerializer(data=completion_data, context={"request": request})
+        serializer = HabitCompletionSerializer(
+            data=completion_data, context={"request": request}
+        )
 
         if serializer.is_valid():
             serializer.save()
@@ -259,13 +295,17 @@ class HabitViewSet(viewsets.ModelViewSet):
         serializer = PublicHabitSerializer(public_habits, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated]
+    )
     def my_habits(self, request):
         """
         Получить только свои привычки.
         Только для аутентифицированных пользователей.
         """
-        my_habits = Habit.objects.filter(user=request.user).select_related("related_habit")
+        my_habits = Habit.objects.filter(user=request.user).select_related(
+            "related_habit"
+        )
 
         # Используем пагинацию
         page = self.paginate_queryset(my_habits)
@@ -276,7 +316,9 @@ class HabitViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(my_habits, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["patch"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=True, methods=["patch"], permission_classes=[permissions.IsAuthenticated]
+    )
     def toggle_public(self, request, pk=None):
         """
         Переключить статус публичности привычки.
@@ -287,7 +329,8 @@ class HabitViewSet(viewsets.ModelViewSet):
         # Проверяем, что пользователь - владелец
         if habit.user != request.user:
             return Response(
-                {"error": "Вы не можете изменять статус публичности чужих привычек."}, status=status.HTTP_403_FORBIDDEN
+                {"error": "Вы не можете изменять статус публичности чужих привычек."},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # Меняем статус публичности
@@ -307,7 +350,12 @@ def _calculate_completion_stats(user):
     """Рассчет статистики выполнения привычек"""
     habits = Habit.objects.filter(user=user)
 
-    stats = {"total_expected": 0, "total_completed": 0, "by_frequency": {}, "by_habit": []}
+    stats = {
+        "total_expected": 0,
+        "total_completed": 0,
+        "by_frequency": {},
+        "by_habit": [],
+    }
 
     for habit in habits:
         # Рассчитываем ожидаемое количество выполнений
@@ -345,14 +393,24 @@ def _calculate_completion_stats(user):
 
     # Общий процент выполнения
     stats["overall_percentage"] = round(
-        (stats["total_completed"] / stats["total_expected"] * 100) if stats["total_expected"] > 0 else 0, 1
+        (
+            (stats["total_completed"] / stats["total_expected"] * 100)
+            if stats["total_expected"] > 0
+            else 0
+        ),
+        1,
     )
 
     # Рассчет процентов для групп по частоте
     for freq in stats["by_frequency"]:
         freq_stats = stats["by_frequency"][freq]
         freq_stats["percentage"] = round(
-            (freq_stats["completed"] / (freq_stats["count"] * 30) * 100) if freq_stats["count"] > 0 else 0, 1
+            (
+                (freq_stats["completed"] / (freq_stats["count"] * 30) * 100)
+                if freq_stats["count"] > 0
+                else 0
+            ),
+            1,
         )
 
     return stats
@@ -419,7 +477,9 @@ def _calculate_habit_streak(habit):
 def _export_to_csv(habits, user):
     """Экспорт в CSV формат"""
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="habits_{user.username}_{datetime.now().date()}.csv"'
+    response["Content-Disposition"] = (
+        f'attachment; filename="habits_{user.username}_{datetime.now().date()}.csv"'
+    )
 
     writer = csv.writer(response)
 
@@ -505,8 +565,12 @@ def _export_to_json(habits, user):
 
         data["habits"].append(habit_data)
 
-    response = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
-    response["Content-Disposition"] = f'attachment; filename="habits_{user.username}_{datetime.now().date()}.json"'
+    response = HttpResponse(
+        json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="habits_{user.username}_{datetime.now().date()}.json"'
+    )
 
     return response
 
@@ -532,7 +596,9 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         Пользователь видит только выполнения своих привычек.
         """
         if self.request.user.is_authenticated:
-            return HabitCompletion.objects.filter(habit__user=self.request.user).select_related("habit")
+            return HabitCompletion.objects.filter(
+                habit__user=self.request.user
+            ).select_related("habit")
 
         return HabitCompletion.objects.none()
 
@@ -541,15 +607,21 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         habit = serializer.validated_data["habit"]
 
         if habit.user != self.request.user:
-            raise serializers.ValidationError("Вы можете добавлять выполнения только для своих привычек.")
+            raise serializers.ValidationError(
+                "Вы можете добавлять выполнения только для своих привычек."
+            )
 
         # Проверяем периодичность выполнения
         if not habit.can_be_completed_today():
-            raise serializers.ValidationError(f"Привычку можно выполнять раз в {habit.frequency_days} дней.")
+            raise serializers.ValidationError(
+                f"Привычку можно выполнять раз в {habit.frequency_days} дней."
+            )
 
         serializer.save()
 
-    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated]
+    )
     def stats(self, request):
         """Статистика выполнения привычек пользователя"""
         user = request.user
@@ -584,7 +656,8 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         successful_habits = (
             Habit.objects.filter(user=user)
             .annotate(
-                completion_count=Count("completions"), last_completion_date=models.Max("completions__completed_at")
+                completion_count=Count("completions"),
+                last_completion_date=models.Max("completions__completed_at"),
             )
             .order_by("-completion_count")[:5]
         )
@@ -604,7 +677,9 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
             Habit.objects.filter(user=user, completions__isnull=False)
             .annotate(
                 last_completion=models.Max("completions__completed_at"),
-                days_since_last=ExpressionWrapper(timezone.now() - F("last_completion"), output_field=DurationField()),
+                days_since_last=ExpressionWrapper(
+                    timezone.now() - F("last_completion"), output_field=DurationField()
+                ),
             )
             .filter(days_since_last__gt=timedelta(days=3))
             .values("id", "action", "last_completion")[:5]
@@ -626,25 +701,36 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
             }
         )
 
-    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated]
+    )
     def progress(self, request, pk=None):
         """Прогресс выполнения конкретной привычки"""
         habit = self.get_object()
 
         # Проверяем права доступа
         if habit.user != request.user and not habit.is_public:
-            return Response({"error": "У вас нет доступа к прогрессу этой привычки"}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "У вас нет доступа к прогрессу этой привычки"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         # Базовые метрики
         total_completions = habit.completions.count()
 
         # За последние 30 дней
         month_ago = timezone.now() - timedelta(days=30)
-        recent_completions = habit.completions.filter(completed_at__gte=month_ago).count()
+        recent_completions = habit.completions.filter(
+            completed_at__gte=month_ago
+        ).count()
 
         # Рассчет процента выполнения
         expected_completions = 30 / habit.frequency_days
-        completion_percentage = (recent_completions / expected_completions * 100) if expected_completions > 0 else 0
+        completion_percentage = (
+            (recent_completions / expected_completions * 100)
+            if expected_completions > 0
+            else 0
+        )
 
         # Текущая серия (streak)
         current_streak = _calculate_habit_streak(habit)
@@ -660,7 +746,9 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         )
 
         # Время суток, когда чаще всего выполняется
-        completion_times = habit.completions.values_list("completed_at__hour", flat=True)
+        completion_times = habit.completions.values_list(
+            "completed_at__hour", flat=True
+        )
 
         # Медиана времени выполнения
         times_list = list(completion_times)
@@ -696,7 +784,9 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
             }
         )
 
-    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated]
+    )
     def export(self, request):
         """Экспорт привычек в различных форматах"""
         format_type = request.query_params.get("format", "json")
@@ -709,16 +799,23 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         elif format_type == "json":
             return _export_to_json(habits, user)
         else:
-            return Response({"error": "Unsupported format. Use csv or json."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Unsupported format. Use csv or json."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
     def bulk_complete(self, request):
         """Массовое выполнение нескольких привычек"""
         habit_ids = request.data.get("habit_ids", [])
         note = request.data.get("note", "")
 
         if not habit_ids:
-            return Response({"error": "No habit_ids provided"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "No habit_ids provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         user = request.user
         successes = []
@@ -739,7 +836,9 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
                     continue
 
                 # Создаем выполнение
-                completion = HabitCompletion.objects.create(habit=habit, is_completed=True, note=note)
+                completion = HabitCompletion.objects.create(
+                    habit=habit, is_completed=True, note=note
+                )
 
                 successes.append(
                     {
@@ -751,7 +850,9 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
                 )
 
             except Habit.DoesNotExist:
-                errors.append({"habit_id": habit_id, "error": "Habit not found or access denied"})
+                errors.append(
+                    {"habit_id": habit_id, "error": "Habit not found or access denied"}
+                )
             except Exception as e:
                 errors.append({"habit_id": habit_id, "error": str(e)})
 
@@ -759,18 +860,29 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
             {
                 "successes": successes,
                 "errors": errors,
-                "summary": {"total": len(habit_ids), "successful": len(successes), "failed": len(errors)},
+                "summary": {
+                    "total": len(habit_ids),
+                    "successful": len(successes),
+                    "failed": len(errors),
+                },
             }
         )
 
-    @action(detail=False, methods=["patch"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["patch"],
+        permission_classes=[permissions.IsAuthenticated],
+    )
     def bulk_update_public(self, request):
         """Массовое обновление статуса публичности"""
         habit_ids = request.data.get("habit_ids", [])
         is_public = request.data.get("is_public")
 
         if is_public is None:
-            return Response({"error": "is_public field is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "is_public field is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         user = request.user
         updated_count = 0
@@ -779,7 +891,10 @@ class HabitCompletionViewSet(viewsets.ModelViewSet):
         habits = Habit.objects.filter(id__in=habit_ids, user=user)
 
         if habits.count() != len(habit_ids):
-            return Response({"error": "Some habits not found or access denied"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Some habits not found or access denied"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Массовое обновление
         updated_count = habits.update(is_public=is_public)

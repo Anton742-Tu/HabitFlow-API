@@ -17,24 +17,39 @@ class Habit(models.Model):
     """Модель привычки"""
 
     # Периодичность выполнения (берем ключи из настроек)
-    FREQUENCY_CHOICES = [(key, key.capitalize()) for key in settings.HABIT_VALIDATION["ALLOWED_FREQUENCIES"].keys()]
+    FREQUENCY_CHOICES = [
+        (key, key.capitalize())
+        for key in settings.HABIT_VALIDATION["ALLOWED_FREQUENCIES"].keys()
+    ]
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="habits", verbose_name="Пользователь"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="habits",
+        verbose_name="Пользователь",
     )
 
     place = models.CharField(
-        max_length=255, verbose_name="Место выполнения", help_text="Место, в котором необходимо выполнять привычку"
+        max_length=255,
+        verbose_name="Место выполнения",
+        help_text="Место, в котором необходимо выполнять привычку",
     )
 
-    time = models.TimeField(verbose_name="Время выполнения", help_text="Время, когда необходимо выполнять привычку")
+    time = models.TimeField(
+        verbose_name="Время выполнения",
+        help_text="Время, когда необходимо выполнять привычку",
+    )
 
     action = models.CharField(
-        max_length=500, verbose_name="Действие", help_text='Конкретное действие, например: "пробежать 1 км"'
+        max_length=500,
+        verbose_name="Действие",
+        help_text='Конкретное действие, например: "пробежать 1 км"',
     )
 
     is_pleasant = models.BooleanField(
-        default=False, verbose_name="Приятная привычка", help_text="Является ли привычка приятной (вознаграждением)"
+        default=False,
+        verbose_name="Приятная привычка",
+        help_text="Является ли привычка приятной (вознаграждением)",
     )
 
     related_habit = models.ForeignKey(
@@ -70,7 +85,9 @@ class Habit(models.Model):
     )
 
     is_public = models.BooleanField(
-        default=False, verbose_name="Публичная привычка", help_text="Могут ли другие пользователи видеть эту привычку"
+        default=False,
+        verbose_name="Публичная привычка",
+        help_text="Могут ли другие пользователи видеть эту привычку",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -83,16 +100,21 @@ class Habit(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="duration_max_120_seconds",
-                check=models.Q(duration__lte=settings.HABIT_VALIDATION["MAX_DURATION_SECONDS"]),
+                check=models.Q(
+                    duration__lte=settings.HABIT_VALIDATION["MAX_DURATION_SECONDS"]
+                ),
             ),
             # Ограничение: у приятной привычки не может быть вознаграждения
             models.CheckConstraint(
-                name="pleasant_no_reward", check=~(models.Q(is_pleasant=True) & models.Q(reward__gt=""))
+                name="pleasant_no_reward",
+                check=~(models.Q(is_pleasant=True) & models.Q(reward__gt="")),
             ),
             # Ограничение: у приятной привычки не может быть связанной привычки
             models.CheckConstraint(
                 name="pleasant_no_related",
-                check=~(models.Q(is_pleasant=True) & models.Q(related_habit__isnull=False)),
+                check=~(
+                    models.Q(is_pleasant=True) & models.Q(related_habit__isnull=False)
+                ),
             ),
         ]
 
@@ -141,13 +163,24 @@ class Habit(models.Model):
 class HabitCompletion(models.Model):
     """Модель для отслеживания выполнения привычек"""
 
-    habit = models.ForeignKey(Habit, on_delete=models.CASCADE, related_name="completions", verbose_name="Привычка")
+    habit = models.ForeignKey(
+        Habit,
+        on_delete=models.CASCADE,
+        related_name="completions",
+        verbose_name="Привычка",
+    )
 
-    completed_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата и время выполнения")
+    completed_at = models.DateTimeField(
+        auto_now_add=True, verbose_name="Дата и время выполнения"
+    )
 
     is_completed = models.BooleanField(default=True, verbose_name="Выполнено")
 
-    note = models.TextField(blank=True, verbose_name="Заметка", help_text="Необязательная заметка о выполнении")
+    note = models.TextField(
+        blank=True,
+        verbose_name="Заметка",
+        help_text="Необязательная заметка о выполнении",
+    )
 
     class Meta:
         verbose_name = "Выполнение привычки"
@@ -186,7 +219,8 @@ class HabitCompletion(models.Model):
                 days_since_last = (timezone.now() - last_completion.completed_at).days
 
                 raise ValidationError(
-                    f"Привычку можно выполнять раз в {min_interval} дней. " f"Прошло только {days_since_last} дней."
+                    f"Привычку можно выполнять раз в {min_interval} дней. "
+                    f"Прошло только {days_since_last} дней."
                 )
 
         self.full_clean()

@@ -17,7 +17,9 @@ def send_habit_reminders():
     current_time = now.time()
 
     # Находим привычки, которые нужно выполнить в ближайшие 5 минут
-    habits = Habit.objects.filter(is_active=True).select_related("user")  # Предполагаем, что добавили это поле
+    habits = Habit.objects.filter(is_active=True).select_related(
+        "user"
+    )  # Предполагаем, что добавили это поле
 
     bot_service = TelegramBotService()
     notifications_sent = 0
@@ -27,20 +29,25 @@ def send_habit_reminders():
             # Проверяем время привычки (±5 минут)
             habit_time = habit.time
             time_diff = abs(
-                (current_time.hour * 60 + current_time.minute) - (habit_time.hour * 60 + habit_time.minute)
+                (current_time.hour * 60 + current_time.minute)
+                - (habit_time.hour * 60 + habit_time.minute)
             )
 
             if time_diff <= 5:  # В пределах 5 минут
                 # Проверяем, подключен ли пользователь к Telegram
                 try:
-                    telegram_user = TelegramUser.objects.get(user=habit.user, is_active=True)
+                    telegram_user = TelegramUser.objects.get(
+                        user=habit.user, is_active=True
+                    )
                     settings = telegram_user.notification_settings
 
                     if settings.enable_habit_reminders:
                         # Проверяем, не было ли уже напоминания сегодня
                         from telegram_bot.models import SentNotification
 
-                        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                        today_start = now.replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        )
 
                         already_sent = SentNotification.objects.filter(
                             telegram_user=telegram_user,
@@ -50,7 +57,9 @@ def send_habit_reminders():
                         ).exists()
 
                         if not already_sent:
-                            bot_service.send_habit_reminder(chat_id=telegram_user.chat_id, habit=habit)
+                            bot_service.send_habit_reminder(
+                                chat_id=telegram_user.chat_id, habit=habit
+                            )
 
                             # Сохраняем в историю
                             SentNotification.objects.create(
@@ -92,7 +101,9 @@ def send_daily_summaries():
 
         for telegram_user in telegram_users:
             try:
-                bot_service.send_daily_summary(chat_id=telegram_user.chat_id, user=telegram_user.user)
+                bot_service.send_daily_summary(
+                    chat_id=telegram_user.chat_id, user=telegram_user.user
+                )
 
                 # Сохраняем в историю
                 from telegram_bot.models import SentNotification
@@ -105,7 +116,9 @@ def send_daily_summaries():
                 )
 
             except Exception as e:
-                logger.error(f"Error sending daily summary to {telegram_user.chat_id}: {e}")
+                logger.error(
+                    f"Error sending daily summary to {telegram_user.chat_id}: {e}"
+                )
 
     return "Daily summaries sent"
 
@@ -125,7 +138,9 @@ def send_weekly_reports():
 
         for telegram_user in telegram_users:
             try:
-                bot_service.send_weekly_report(chat_id=telegram_user.chat_id, user=telegram_user.user)
+                bot_service.send_weekly_report(
+                    chat_id=telegram_user.chat_id, user=telegram_user.user
+                )
 
                 # Сохраняем в историю
                 from telegram_bot.models import SentNotification
@@ -138,7 +153,9 @@ def send_weekly_reports():
                 )
 
             except Exception as e:
-                logger.error(f"Error sending weekly report to {telegram_user.chat_id}: {e}")
+                logger.error(
+                    f"Error sending weekly report to {telegram_user.chat_id}: {e}"
+                )
 
     return "Weekly reports sent"
 

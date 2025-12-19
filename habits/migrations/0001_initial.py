@@ -2,9 +2,10 @@
 
 import django.core.validators
 import django.db.models.deletion
-import habits.validators
 from django.conf import settings
 from django.db import migrations, models
+
+import habits.validators
 
 
 class Migration(migrations.Migration):
@@ -19,7 +20,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Habit",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 (
                     "place",
                     models.CharField(
@@ -31,7 +40,8 @@ class Migration(migrations.Migration):
                 (
                     "time",
                     models.TimeField(
-                        help_text="Время, когда необходимо выполнять привычку", verbose_name="Время выполнения"
+                        help_text="Время, когда необходимо выполнять привычку",
+                        verbose_name="Время выполнения",
                     ),
                 ),
                 (
@@ -62,7 +72,11 @@ class Migration(migrations.Migration):
                 (
                     "frequency",
                     models.CharField(
-                        choices=[("daily", "Daily"), ("weekly", "Weekly"), ("monthly", "Monthly")],
+                        choices=[
+                            ("daily", "Daily"),
+                            ("weekly", "Weekly"),
+                            ("monthly", "Monthly"),
+                        ],
                         default="daily",
                         help_text="Как часто выполнять привычку",
                         max_length=10,
@@ -74,7 +88,10 @@ class Migration(migrations.Migration):
                     models.PositiveIntegerField(
                         default=120,
                         help_text="Время на выполнение должно быть не более 120 секунд",
-                        validators=[django.core.validators.MinValueValidator(1), habits.validators.validate_duration],
+                        validators=[
+                            django.core.validators.MinValueValidator(1),
+                            habits.validators.validate_duration,
+                        ],
                         verbose_name="Время на выполнение (в секундах)",
                     ),
                 ),
@@ -119,13 +136,31 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="HabitCompletion",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("completed_at", models.DateTimeField(auto_now_add=True, verbose_name="Дата и время выполнения")),
-                ("is_completed", models.BooleanField(default=True, verbose_name="Выполнено")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "completed_at",
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="Дата и время выполнения"
+                    ),
+                ),
+                (
+                    "is_completed",
+                    models.BooleanField(default=True, verbose_name="Выполнено"),
+                ),
                 (
                     "note",
                     models.TextField(
-                        blank=True, help_text="Необязательная заметка о выполнении", verbose_name="Заметка"
+                        blank=True,
+                        help_text="Необязательная заметка о выполнении",
+                        verbose_name="Заметка",
                     ),
                 ),
                 (
@@ -153,18 +188,27 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="habit",
             constraint=models.CheckConstraint(
-                check=models.Q(("is_pleasant", True), ("reward__gt", ""), _negated=True), name="pleasant_no_reward"
+                check=models.Q(
+                    ("is_pleasant", True), ("reward__gt", ""), _negated=True
+                ),
+                name="pleasant_no_reward",
             ),
         ),
         migrations.AddConstraint(
             model_name="habit",
             constraint=models.CheckConstraint(
-                check=models.Q(("is_pleasant", True), ("related_habit__isnull", False), _negated=True),
+                check=models.Q(
+                    ("is_pleasant", True),
+                    ("related_habit__isnull", False),
+                    _negated=True,
+                ),
                 name="pleasant_no_related",
             ),
         ),
         migrations.AddIndex(
             model_name="habitcompletion",
-            index=models.Index(fields=["habit", "completed_at"], name="habits_habi_habit_i_99b107_idx"),
+            index=models.Index(
+                fields=["habit", "completed_at"], name="habits_habi_habit_i_99b107_idx"
+            ),
         ),
     ]

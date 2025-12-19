@@ -15,7 +15,9 @@ class HabitAPITestCase(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username="testuser", password="testpass123", email="test@example.com")
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123", email="test@example.com"
+        )
 
         # Аутентифицируем клиента
         self.client.force_authenticate(user=self.user)
@@ -111,7 +113,9 @@ class HabitAPITestCase(TestCase):
         """Тест отметки выполнения привычки"""
         # Первое выполнение должно работать
         response = self.client.post(
-            f"/api/habits/{self.habit.id}/complete/", {"note": "Выполнено успешно!"}, format="json"
+            f"/api/habits/{self.habit.id}/complete/",
+            {"note": "Выполнено успешно!"},
+            format="json",
         )
 
         print(f"Complete habit - Status: {response.status_code}")
@@ -123,7 +127,9 @@ class HabitAPITestCase(TestCase):
 
         # Второе выполнение в тот же день должно вызвать ошибку
         response2 = self.client.post(
-            f"/api/habits/{self.habit.id}/complete/", {"note": "Повторное выполнение"}, format="json"
+            f"/api/habits/{self.habit.id}/complete/",
+            {"note": "Повторное выполнение"},
+            format="json",
         )
 
         print(f"Second completion - Status: {response2.status_code}")
@@ -141,7 +147,9 @@ class HabitAPITestCase(TestCase):
         response = self.client.get("/api/habits/my_habits/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        habits = response.data["results"] if "results" in response.data else response.data
+        habits = (
+            response.data["results"] if "results" in response.data else response.data
+        )
         self.assertEqual(len(habits), 1)
         self.assertEqual(habits[0]["action"], "Тестовая привычка")
 
@@ -149,7 +157,12 @@ class HabitAPITestCase(TestCase):
         """Тест эндпоинта /public/"""
         # Создаем приватную привычку
         Habit.objects.create(
-            user=self.user, place="Дом", time=time(9, 0), action="Приватная привычка", duration=60, is_public=False
+            user=self.user,
+            place="Дом",
+            time=time(9, 0),
+            action="Приватная привычка",
+            duration=60,
+            is_public=False,
         )
 
         response = self.client.get("/api/habits/public/")

@@ -19,7 +19,10 @@ class SecurityHeadersMiddleware:
             # Проверяем что origin разрешен
             from django.conf import settings
 
-            if origin in settings.CORS_ALLOWED_ORIGINS or settings.CORS_ALLOW_ALL_ORIGINS:
+            if (
+                origin in settings.CORS_ALLOWED_ORIGINS
+                or settings.CORS_ALLOW_ALL_ORIGINS
+            ):
                 response["Access-Control-Allow-Origin"] = origin
                 response["Access-Control-Allow-Credentials"] = "true"
 

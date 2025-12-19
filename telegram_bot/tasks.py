@@ -34,24 +34,33 @@ def send_scheduled_reminders():
                 continue
 
             time_diff = abs(
-                (current_time.hour * 60 + current_time.minute) - (habit_time.hour * 60 + habit_time.minute)
+                (current_time.hour * 60 + current_time.minute)
+                - (habit_time.hour * 60 + habit_time.minute)
             )
 
             if time_diff <= 15:  # В пределах 15 минут
                 # Проверяем, подключен ли пользователь к Telegram
                 try:
-                    telegram_user = TelegramUser.objects.get(user=habit.user, is_active=True)
+                    telegram_user = TelegramUser.objects.get(
+                        user=habit.user, is_active=True
+                    )
 
                     # Отправляем напоминание
-                    bot_service.send_habit_reminder(chat_id=telegram_user.chat_id, habit=habit)
+                    bot_service.send_habit_reminder(
+                        chat_id=telegram_user.chat_id, habit=habit
+                    )
 
                     reminders_sent += 1
-                    logger.info(f"Отправлено напоминание для {habit.user.username}: {habit.action}")
+                    logger.info(
+                        f"Отправлено напоминание для {habit.user.username}: {habit.action}"
+                    )
 
                 except TelegramUser.DoesNotExist:
                     continue
                 except Exception as e:
-                    logger.error(f"Ошибка отправки напоминания для привычки {habit.id}: {e}")
+                    logger.error(
+                        f"Ошибка отправки напоминания для привычки {habit.id}: {e}"
+                    )
                     continue
 
         except Exception as e:

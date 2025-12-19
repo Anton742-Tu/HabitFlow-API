@@ -17,7 +17,9 @@ class TestValidatorsComplete(TestCase):
             validate_duration(max_duration)  # Должно пройти
             self.assertTrue(True)
         except ValidationError:
-            self.fail(f"validate_duration не должна падать на максимальном значении {max_duration}")
+            self.fail(
+                f"validate_duration не должна падать на максимальном значении {max_duration}"
+            )
 
         # Граничное значение (максимум + 1)
         with self.assertRaises(ValidationError) as context:

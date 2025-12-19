@@ -15,18 +15,30 @@ class TelegramUser(models.Model):
     )
 
     telegram_id = models.BigIntegerField(
-        unique=True, verbose_name="ID в Telegram", help_text="Числовой ID пользователя в Telegram"
+        unique=True,
+        verbose_name="ID в Telegram",
+        help_text="Числовой ID пользователя в Telegram",
     )
 
-    username = models.CharField(max_length=255, blank=True, null=True, verbose_name="Username в Telegram")
+    username = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="Username в Telegram"
+    )
 
-    first_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Имя в Telegram")
+    first_name = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="Имя в Telegram"
+    )
 
-    last_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Фамилия в Telegram")
+    last_name = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="Фамилия в Telegram"
+    )
 
-    is_active = models.BooleanField(default=True, verbose_name="Бот активен для пользователя")
+    is_active = models.BooleanField(
+        default=True, verbose_name="Бот активен для пользователя"
+    )
 
-    language_code = models.CharField(max_length=10, blank=True, null=True, verbose_name="Код языка")
+    language_code = models.CharField(
+        max_length=10, blank=True, null=True, verbose_name="Код языка"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -43,21 +55,39 @@ class TelegramUser(models.Model):
 class NotificationSettings(models.Model):
     """Настройки уведомлений для пользователя"""
 
-    telegram_user = models.OneToOneField(TelegramUser, on_delete=models.CASCADE, related_name="notification_settings")
+    telegram_user = models.OneToOneField(
+        TelegramUser, on_delete=models.CASCADE, related_name="notification_settings"
+    )
 
     # Время уведомлений
-    morning_reminder_time = models.TimeField(default="09:00", verbose_name="Утреннее напоминание")
-    evening_reminder_time = models.TimeField(default="21:00", verbose_name="Вечернее напоминание")
+    morning_reminder_time = models.TimeField(
+        default="09:00", verbose_name="Утреннее напоминание"
+    )
+    evening_reminder_time = models.TimeField(
+        default="21:00", verbose_name="Вечернее напоминание"
+    )
 
     # Типы уведомлений
-    enable_daily_reminders = models.BooleanField(default=True, verbose_name="Ежедневные напоминания")
-    enable_habit_reminders = models.BooleanField(default=True, verbose_name="Напоминания о привычках")
-    enable_weekly_reports = models.BooleanField(default=True, verbose_name="Еженедельные отчеты")
-    enable_streak_alerts = models.BooleanField(default=True, verbose_name="Оповещения о сериях")
+    enable_daily_reminders = models.BooleanField(
+        default=True, verbose_name="Ежедневные напоминания"
+    )
+    enable_habit_reminders = models.BooleanField(
+        default=True, verbose_name="Напоминания о привычках"
+    )
+    enable_weekly_reports = models.BooleanField(
+        default=True, verbose_name="Еженедельные отчеты"
+    )
+    enable_streak_alerts = models.BooleanField(
+        default=True, verbose_name="Оповещения о сериях"
+    )
 
     # Настройки времени
-    remind_before_minutes = models.PositiveIntegerField(default=15, verbose_name="Напоминать за (минут)")
-    timezone = models.CharField(max_length=50, default="Europe/Moscow", verbose_name="Часовой пояс")
+    remind_before_minutes = models.PositiveIntegerField(
+        default=15, verbose_name="Напоминать за (минут)"
+    )
+    timezone = models.CharField(
+        max_length=50, default="Europe/Moscow", verbose_name="Часовой пояс"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -73,8 +103,12 @@ class NotificationSettings(models.Model):
 class SentNotification(models.Model):
     """История отправленных уведомлений"""
 
-    telegram_user = models.ForeignKey(TelegramUser, on_delete=models.CASCADE, related_name="sent_notifications")
-    habit = models.ForeignKey("habits.Habit", on_delete=models.CASCADE, null=True, blank=True)
+    telegram_user = models.ForeignKey(
+        TelegramUser, on_delete=models.CASCADE, related_name="sent_notifications"
+    )
+    habit = models.ForeignKey(
+        "habits.Habit", on_delete=models.CASCADE, null=True, blank=True
+    )
     notification_type = models.CharField(
         max_length=50,
         choices=[
@@ -114,7 +148,9 @@ class TelegramConnectionCode(models.Model):
 
     code = models.CharField(max_length=6, unique=True, verbose_name="Код подтверждения")
 
-    telegram_id = models.BigIntegerField(null=True, blank=True, verbose_name="ID в Telegram (после привязки)")
+    telegram_id = models.BigIntegerField(
+        null=True, blank=True, verbose_name="ID в Telegram (после привязки)"
+    )
 
     is_used = models.BooleanField(default=False, verbose_name="Использован")
 
@@ -154,6 +190,8 @@ class TelegramConnectionCode(models.Model):
 
         # Создаем новый код
         connection_code = cls.objects.create(
-            django_user=user, code=code, expires_at=timezone.now() + timezone.timedelta(minutes=10)  # ← ИЗМЕНЕНО
+            django_user=user,
+            code=code,
+            expires_at=timezone.now() + timezone.timedelta(minutes=10),  # ← ИЗМЕНЕНО
         )
         return connection_code

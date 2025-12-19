@@ -22,7 +22,9 @@ class UserAuthTestCase(TestCase):
 
     def test_register_user(self):
         """Тест регистрации пользователя"""
-        response = self.client.post("/api/users/register/", self.user_data, format="json")
+        response = self.client.post(
+            "/api/users/register/", self.user_data, format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -38,10 +40,14 @@ class UserAuthTestCase(TestCase):
     def test_login_user(self):
         """Тест входа пользователя"""
         # Создаем пользователя
-        User.objects.create_user(username="loginuser", password="testpass123", email="login@example.com")
+        User.objects.create_user(
+            username="loginuser", password="testpass123", email="login@example.com"
+        )
 
         response = self.client.post(
-            "/api/users/token/", {"username": "loginuser", "password": "testpass123"}, format="json"
+            "/api/users/token/",
+            {"username": "loginuser", "password": "testpass123"},
+            format="json",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -77,7 +83,9 @@ class UserAuthTestCase(TestCase):
     def test_login_user_invalid_credentials(self):
         """Тест входа с неверными учетными данными"""
         response = self.client.post(
-            "/api/users/token/", {"username": "wronguser", "password": "wrongpass"}, format="json"
+            "/api/users/token/",
+            {"username": "wronguser", "password": "wrongpass"},
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 

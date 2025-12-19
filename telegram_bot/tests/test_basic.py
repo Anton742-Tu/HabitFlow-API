@@ -13,7 +13,11 @@ class TestTelegramBotSimple(TestCase):
     def test_module_imports(self):
         """Тест импортов модулей"""
         # Проверяем основные импорты
-        modules_to_test = ["telegram_bot.models", "telegram_bot.views", "telegram_bot.apps"]
+        modules_to_test = [
+            "telegram_bot.models",
+            "telegram_bot.views",
+            "telegram_bot.apps",
+        ]
 
         for module_name in modules_to_test:
             try:
@@ -36,7 +40,12 @@ class TestTelegramBotSimple(TestCase):
         self.assertEqual(len(uuid_str), 36)
 
         # Проверяем формат с дефисами
-        self.assertTrue(re.match(r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", uuid_str))
+        self.assertTrue(
+            re.match(
+                r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+                uuid_str,
+            )
+        )
 
         # Без дефисов
         uuid_no_dashes = uuid_str.replace("-", "")

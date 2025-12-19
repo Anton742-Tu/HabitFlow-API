@@ -11,8 +11,14 @@ class Command(BaseCommand):
     help = "Тестовая отправка уведомления"
 
     def add_arguments(self, parser):
-        parser.add_argument("--user", type=str, help="Имя пользователя для отправки теста")
-        parser.add_argument("--all", action="store_true", help="Отправить всем подключенным пользователям")
+        parser.add_argument(
+            "--user", type=str, help="Имя пользователя для отправки теста"
+        )
+        parser.add_argument(
+            "--all",
+            action="store_true",
+            help="Отправить всем подключенным пользователям",
+        )
 
     def handle(self, *args, **options):
         bot_service = TelegramBotService()
@@ -21,12 +27,18 @@ class Command(BaseCommand):
             # Отправляем конкретному пользователю
             user = User.objects.filter(username=options["user"]).first()
             if not user:
-                self.stdout.write(self.style.ERROR(f'❌ Пользователь {options["user"]} не найден'))
+                self.stdout.write(
+                    self.style.ERROR(f'❌ Пользователь {options["user"]} не найден')
+                )
                 return
 
             telegram_user = TelegramUser.objects.filter(user=user).first()
             if not telegram_user:
-                self.stdout.write(self.style.ERROR(f"❌ Пользователь {user.username} не подключен к Telegram"))
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"❌ Пользователь {user.username} не подключен к Telegram"
+                    )
+                )
                 return
 
             self.send_test_notification(telegram_user.chat_id, bot_service, user)
@@ -35,12 +47,20 @@ class Command(BaseCommand):
             # Отправляем всем подключенным пользователям
             telegram_users = TelegramUser.objects.filter(is_active=True)
 
-            self.stdout.write(f"📨 Отправка тестовых уведомлений {telegram_users.count()} пользователям...")
+            self.stdout.write(
+                f"📨 Отправка тестовых уведомлений {telegram_users.count()} пользователям..."
+            )
 
             for telegram_user in telegram_users:
-                self.send_test_notification(telegram_user.chat_id, bot_service, telegram_user.user)
+                self.send_test_notification(
+                    telegram_user.chat_id, bot_service, telegram_user.user
+                )
 
-            self.stdout.write(self.style.SUCCESS(f"✅ Отправлено {telegram_users.count()} уведомлений"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"✅ Отправлено {telegram_users.count()} уведомлений"
+                )
+            )
 
         else:
             # Показываем подключенных пользователей
@@ -79,9 +99,13 @@ class Command(BaseCommand):
             result = bot_service.send_message(chat_id, message)
 
             if result:
-                self.stdout.write(self.style.SUCCESS(f"  ✅ Отправлено {user.username}"))
+                self.stdout.write(
+                    self.style.SUCCESS(f"  ✅ Отправлено {user.username}")
+                )
             else:
-                self.stdout.write(self.style.ERROR(f"  ❌ Ошибка отправки {user.username}"))
+                self.stdout.write(
+                    self.style.ERROR(f"  ❌ Ошибка отправки {user.username}")
+                )
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"  ❌ Ошибка: {e}"))

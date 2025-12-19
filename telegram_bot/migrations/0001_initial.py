@@ -18,13 +18,33 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="TelegramConnectionCode",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("code", models.CharField(max_length=6, unique=True, verbose_name="Код подтверждения")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "code",
+                    models.CharField(
+                        max_length=6, unique=True, verbose_name="Код подтверждения"
+                    ),
+                ),
                 (
                     "telegram_id",
-                    models.BigIntegerField(blank=True, null=True, verbose_name="ID в Telegram (после привязки)"),
+                    models.BigIntegerField(
+                        blank=True,
+                        null=True,
+                        verbose_name="ID в Telegram (после привязки)",
+                    ),
                 ),
-                ("is_used", models.BooleanField(default=False, verbose_name="Использован")),
+                (
+                    "is_used",
+                    models.BooleanField(default=False, verbose_name="Использован"),
+                ),
                 ("expires_at", models.DateTimeField(verbose_name="Действителен до")),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (
@@ -46,24 +66,62 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="TelegramUser",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 (
                     "telegram_id",
                     models.BigIntegerField(
-                        help_text="Числовой ID пользователя в Telegram", unique=True, verbose_name="ID в Telegram"
+                        help_text="Числовой ID пользователя в Telegram",
+                        unique=True,
+                        verbose_name="ID в Telegram",
                     ),
                 ),
                 (
                     "username",
-                    models.CharField(blank=True, max_length=255, null=True, verbose_name="Username в Telegram"),
+                    models.CharField(
+                        blank=True,
+                        max_length=255,
+                        null=True,
+                        verbose_name="Username в Telegram",
+                    ),
                 ),
-                ("first_name", models.CharField(blank=True, max_length=255, null=True, verbose_name="Имя в Telegram")),
+                (
+                    "first_name",
+                    models.CharField(
+                        blank=True,
+                        max_length=255,
+                        null=True,
+                        verbose_name="Имя в Telegram",
+                    ),
+                ),
                 (
                     "last_name",
-                    models.CharField(blank=True, max_length=255, null=True, verbose_name="Фамилия в Telegram"),
+                    models.CharField(
+                        blank=True,
+                        max_length=255,
+                        null=True,
+                        verbose_name="Фамилия в Telegram",
+                    ),
                 ),
-                ("is_active", models.BooleanField(default=True, verbose_name="Бот активен для пользователя")),
-                ("language_code", models.CharField(blank=True, max_length=10, null=True, verbose_name="Код языка")),
+                (
+                    "is_active",
+                    models.BooleanField(
+                        default=True, verbose_name="Бот активен для пользователя"
+                    ),
+                ),
+                (
+                    "language_code",
+                    models.CharField(
+                        blank=True, max_length=10, null=True, verbose_name="Код языка"
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
@@ -85,18 +143,65 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="NotificationSettings",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("morning_reminder_time", models.TimeField(default="09:00", verbose_name="Утреннее напоминание")),
-                ("evening_reminder_time", models.TimeField(default="21:00", verbose_name="Вечернее напоминание")),
-                ("enable_daily_reminders", models.BooleanField(default=True, verbose_name="Ежедневные напоминания")),
-                ("enable_habit_reminders", models.BooleanField(default=True, verbose_name="Напоминания о привычках")),
-                ("enable_weekly_reports", models.BooleanField(default=True, verbose_name="Еженедельные отчеты")),
-                ("enable_streak_alerts", models.BooleanField(default=True, verbose_name="Оповещения о сериях")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "morning_reminder_time",
+                    models.TimeField(
+                        default="09:00", verbose_name="Утреннее напоминание"
+                    ),
+                ),
+                (
+                    "evening_reminder_time",
+                    models.TimeField(
+                        default="21:00", verbose_name="Вечернее напоминание"
+                    ),
+                ),
+                (
+                    "enable_daily_reminders",
+                    models.BooleanField(
+                        default=True, verbose_name="Ежедневные напоминания"
+                    ),
+                ),
+                (
+                    "enable_habit_reminders",
+                    models.BooleanField(
+                        default=True, verbose_name="Напоминания о привычках"
+                    ),
+                ),
+                (
+                    "enable_weekly_reports",
+                    models.BooleanField(
+                        default=True, verbose_name="Еженедельные отчеты"
+                    ),
+                ),
+                (
+                    "enable_streak_alerts",
+                    models.BooleanField(
+                        default=True, verbose_name="Оповещения о сериях"
+                    ),
+                ),
                 (
                     "remind_before_minutes",
-                    models.PositiveIntegerField(default=15, verbose_name="Напоминать за (минут)"),
+                    models.PositiveIntegerField(
+                        default=15, verbose_name="Напоминать за (минут)"
+                    ),
                 ),
-                ("timezone", models.CharField(default="Europe/Moscow", max_length=50, verbose_name="Часовой пояс")),
+                (
+                    "timezone",
+                    models.CharField(
+                        default="Europe/Moscow",
+                        max_length=50,
+                        verbose_name="Часовой пояс",
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
@@ -116,7 +221,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="SentNotification",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 (
                     "notification_type",
                     models.CharField(
@@ -137,7 +250,10 @@ class Migration(migrations.Migration):
                 (
                     "habit",
                     models.ForeignKey(
-                        blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to="habits.habit"
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="habits.habit",
                     ),
                 ),
                 (
@@ -154,7 +270,10 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "Отправленные уведомления",
                 "ordering": ["-sent_at"],
                 "indexes": [
-                    models.Index(fields=["sent_at", "notification_type"], name="telegram_bo_sent_at_df1844_idx")
+                    models.Index(
+                        fields=["sent_at", "notification_type"],
+                        name="telegram_bo_sent_at_df1844_idx",
+                    )
                 ],
             },
         ),

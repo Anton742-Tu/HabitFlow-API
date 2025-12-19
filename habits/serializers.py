@@ -30,7 +30,9 @@ class HabitCompletionSerializer(serializers.ModelSerializer):
         # Проверяем, что привычка принадлежит текущему пользователю
         request = self.context.get("request")
         if request and habit.user != request.user:
-            raise serializers.ValidationError("Вы можете отмечать выполнение только своих привычек.")
+            raise serializers.ValidationError(
+                "Вы можете отмечать выполнение только своих привычек."
+            )
 
         return data
 
@@ -74,17 +76,25 @@ class HabitSerializer(serializers.ModelSerializer):
         """Валидация данных привычки"""
 
         # Проверяем, что для приятной привычки не указаны reward или related_habit
-        is_pleasant = data.get("is_pleasant", self.instance.is_pleasant if self.instance else False)
+        is_pleasant = data.get(
+            "is_pleasant", self.instance.is_pleasant if self.instance else False
+        )
 
         if is_pleasant:
             if data.get("reward"):
-                raise serializers.ValidationError("У приятной привычки не может быть вознаграждения.")
+                raise serializers.ValidationError(
+                    "У приятной привычки не может быть вознаграждения."
+                )
             if data.get("related_habit"):
-                raise serializers.ValidationError("У приятной привычки не может быть связанной привычки.")
+                raise serializers.ValidationError(
+                    "У приятной привычки не может быть связанной привычки."
+                )
 
         # Проверяем, что не указаны одновременно reward и related_habit
         if data.get("reward") and data.get("related_habit"):
-            raise serializers.ValidationError("Нельзя одновременно указывать и связанную привычку и вознаграждение.")
+            raise serializers.ValidationError(
+                "Нельзя одновременно указывать и связанную привычку и вознаграждение."
+            )
 
         return data
 
@@ -99,7 +109,9 @@ class PublicHabitSerializer(serializers.ModelSerializer):
     """Сериализатор для публичных привычек (ограниченные поля)"""
 
     user = UserSerializer(read_only=True)
-    full_description = serializers.SerializerMethodField()  # Используем SerializerMethodField
+    full_description = (
+        serializers.SerializerMethodField()
+    )  # Используем SerializerMethodField
 
     class Meta:
         model = Habit

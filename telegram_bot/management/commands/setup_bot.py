@@ -56,7 +56,9 @@ class Command(BaseCommand):
             if response.status_code == 200:
                 result = response.json()
                 if result.get("ok"):
-                    self.stdout.write(self.style.SUCCESS("✅ Webhook успешно настроен!"))
+                    self.stdout.write(
+                        self.style.SUCCESS("✅ Webhook успешно настроен!")
+                    )
 
                     # Получаем информацию о webhook
                     info_response = requests.get(
@@ -69,18 +71,34 @@ class Command(BaseCommand):
                         if webhook_info.get("ok"):
                             info = webhook_info["result"]
                             self.stdout.write("📊 Информация о webhook:")
-                            self.stdout.write(f"   URL: {info.get('url', 'не настроен')}")
-                            self.stdout.write(f"   Есть сертификат: {info.get('has_custom_certificate', False)}")
-                            self.stdout.write(f"   Ожидает обновлений: {info.get('pending_update_count', 0)}")
-                            self.stdout.write(f"   Последняя ошибка: {info.get('last_error_message', 'нет')}")
+                            self.stdout.write(
+                                f"   URL: {info.get('url', 'не настроен')}"
+                            )
+                            self.stdout.write(
+                                f"   Есть сертификат: {info.get('has_custom_certificate', False)}"
+                            )
+                            self.stdout.write(
+                                f"   Ожидает обновлений: {info.get('pending_update_count', 0)}"
+                            )
+                            self.stdout.write(
+                                f"   Последняя ошибка: {info.get('last_error_message', 'нет')}"
+                            )
                         else:
-                            self.stdout.write(self.style.WARNING("⚠️ Не удалось получить информацию о webhook"))
+                            self.stdout.write(
+                                self.style.WARNING(
+                                    "⚠️ Не удалось получить информацию о webhook"
+                                )
+                            )
                 else:
                     self.stdout.write(
-                        self.style.ERROR(f"❌ Ошибка настройки webhook: {result.get('description', 'Unknown error')}")
+                        self.style.ERROR(
+                            f"❌ Ошибка настройки webhook: {result.get('description', 'Unknown error')}"
+                        )
                     )
             else:
-                self.stdout.write(self.style.ERROR(f"❌ HTTP ошибка: {response.status_code}"))
+                self.stdout.write(
+                    self.style.ERROR(f"❌ HTTP ошибка: {response.status_code}")
+                )
 
         except requests.exceptions.RequestException as e:
             self.stdout.write(self.style.ERROR(f"❌ Ошибка подключения: {e}"))

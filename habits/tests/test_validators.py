@@ -5,10 +5,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from habits.models import Habit
-from habits.validators import (
-    validate_duration,
-    validate_habit_consistency,
-)
+from habits.validators import validate_duration, validate_habit_consistency
 
 User = get_user_model()
 
@@ -17,7 +14,9 @@ class ValidatorsTestCase(TestCase):
     """Тесты для валидаторов"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username="testuser", password="testpass123")
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123"
+        )
 
     def test_validate_duration(self):
         """Тест валидации времени выполнения"""
@@ -43,7 +42,12 @@ class ValidatorsTestCase(TestCase):
         """Тест валидации согласованности привычки"""
         # Создаем приятную привычку
         pleasant_habit = Habit.objects.create(
-            user=self.user, place="Диван", time=time(20, 0), action="Приятная привычка", duration=60, is_pleasant=True
+            user=self.user,
+            place="Диван",
+            time=time(20, 0),
+            action="Приятная привычка",
+            duration=60,
+            is_pleasant=True,
         )
 
         # Тест 1: Приятная привычка с вознаграждением (должна быть ошибка)

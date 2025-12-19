@@ -1,0 +1,87 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=10240']
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-case-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/psf/black
+    rev: 25.12.0
+    hooks:
+      - id: black
+        args: [--safe]
+        language_version: python3.12
+
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        args: ["--max-line-length=88", "--extend-ignore=E203,W503,E501"]
+        additional_dependencies:
+          - flake8-django
+          - flake8-bugbear
+          - flake8-comprehensions
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --show-error-codes]
+        additional_dependencies:
+          - django-stubs
+          - djangorestframework-stubs
+          - types-requests
+          - types-redis
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.2
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+        exclude: ^tests/
+
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.4.2
+    hooks:
+      - id: python-safety-dependencies-check
+        args: [--json, --output, safety-report.json]
+        stages: [pre-push]
+
+  - repo: local
+    hooks:
+      - id: django-makemigrations
+        name: Check Django Migrations
+        entry: python manage.py makemigrations --check --dry-run
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: django-check
+        name: Django System Check
+        entry: python manage.py check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: collectstatic-check
+        name: Collect Static Check
+        entry: python manage.py collectstatic --noinput --dry-run
+        language: system
+        pass_filenames: false
+        always_run: false
+        stages: [pre-push]

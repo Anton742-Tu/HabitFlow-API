@@ -16,7 +16,9 @@ class Command(BaseCommand):
 
         try:
             # Проверяем что бот доступен
-            response = requests.get(f"https://api.telegram.org/bot{token}/getMe", timeout=10)
+            response = requests.get(
+                f"https://api.telegram.org/bot{token}/getMe", timeout=10
+            )
 
             if response.status_code == 200:
                 data = response.json()
@@ -31,9 +33,13 @@ class Command(BaseCommand):
                         )
                     )
                 else:
-                    self.stdout.write(self.style.ERROR(f'Ошибка API: {data.get("description")}'))
+                    self.stdout.write(
+                        self.style.ERROR(f'Ошибка API: {data.get("description")}')
+                    )
             else:
-                self.stdout.write(self.style.ERROR(f"HTTP ошибка: {response.status_code}"))
+                self.stdout.write(
+                    self.style.ERROR(f"HTTP ошибка: {response.status_code}")
+                )
 
         except requests.exceptions.ConnectionError:
             self.stdout.write(self.style.ERROR("Нет подключения к интернету"))

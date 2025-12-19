@@ -7,7 +7,9 @@ def validate_duration(value):
     max_duration = settings.HABIT_VALIDATION["MAX_DURATION_SECONDS"]
 
     if value > max_duration:
-        raise ValidationError(f"Время выполнения должно быть не больше {max_duration} секунд.")
+        raise ValidationError(
+            f"Время выполнения должно быть не больше {max_duration} секунд."
+        )
     if value <= 0:
         raise ValidationError("Время выполнения должно быть положительным числом.")
 
@@ -34,7 +36,9 @@ def validate_habit_consistency(habit):
         has_related = habit.related_habit is not None
 
         if has_reward and has_related:
-            errors.append("Нельзя одновременно указывать и связанную привычку и вознаграждение.")
+            errors.append(
+                "Нельзя одновременно указывать и связанную привычку и вознаграждение."
+            )
 
         # Проверяем, что связанная привычка приятная
         if has_related and useful_rules["related_must_be_pleasant"]:
@@ -57,7 +61,8 @@ def validate_completion_frequency(habit, completion_date):
 
     if days_since_last > max_break_days:
         raise ValidationError(
-            f"Привычка не выполнялась {days_since_last} дней. " f"Максимальный перерыв - {max_break_days} дней."
+            f"Привычка не выполнялась {days_since_last} дней. "
+            f"Максимальный перерыв - {max_break_days} дней."
         )
 
 
@@ -84,5 +89,6 @@ def validate_too_frequent_completion(habit, completion_date):
 
     if days_since_last < min_interval_days:
         raise ValidationError(
-            f"Привычку можно выполнять раз в {min_interval_days} дней. " f"Прошло только {days_since_last} дней."
+            f"Привычку можно выполнять раз в {min_interval_days} дней. "
+            f"Прошло только {days_since_last} дней."
         )

@@ -46,7 +46,8 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         telegram_user = TelegramUser.objects.get(telegram_id=user.id)
         await update.message.reply_text(
-            f"✅ Ваш аккаунт уже привязан к пользователю {telegram_user.django_user.username}", parse_mode="HTML"
+            f"✅ Ваш аккаунт уже привязан к пользователю {telegram_user.django_user.username}",
+            parse_mode="HTML",
         )
         return
     except TelegramUser.DoesNotExist:
@@ -102,14 +103,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await update.message.reply_text(
-        "Я пока понимаю только команды 😊\n" "Используйте /help чтобы увидеть список команд"
+        "Я пока понимаю только команды 😊\n"
+        "Используйте /help чтобы увидеть список команд"
     )
 
 
 async def handle_connection_code(update: Update, code: str):
     """Обработка кода привязки"""
     try:
-        connection_code = TelegramConnectionCode.objects.get(code=code, is_used=False, telegram_id__isnull=True)
+        connection_code = TelegramConnectionCode.objects.get(
+            code=code, is_used=False, telegram_id__isnull=True
+        )
 
         if not connection_code.is_valid():
             await update.message.reply_text("❌ Срок действия кода истек")
@@ -148,19 +152,25 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("complete_"):
         habit_id = data.replace("complete_", "")  # Используется в сообщении
 
-        await query.edit_message_text(text=f"✅ Привычка {habit_id} отмечена как выполненная!", parse_mode="HTML")
+        await query.edit_message_text(
+            text=f"✅ Привычка {habit_id} отмечена как выполненная!", parse_mode="HTML"
+        )
 
     elif data.startswith("postpone_"):
         habit_id = data.replace("postpone_", "")  # Используется в сообщении
 
-        await query.edit_message_text(text=f"⏰ Напоминание {habit_id} отложено на 15 минут", parse_mode="HTML")
+        await query.edit_message_text(
+            text=f"⏰ Напоминание {habit_id} отложено на 15 минут", parse_mode="HTML"
+        )
 
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик ошибок"""
     logger.error(f"Update {update} caused error {context.error}")
     if update and update.effective_message:
-        await update.effective_message.reply_text("😕 Произошла ошибка. Попробуйте позже.")
+        await update.effective_message.reply_text(
+            "😕 Произошла ошибка. Попробуйте позже."
+        )
 
 
 def setup_handlers(application: Application):
@@ -171,6 +181,8 @@ def setup_handlers(application: Application):
 
     application.add_handler(CallbackQueryHandler(callback_handler))
 
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
+    )
 
     application.add_error_handler(error_handler)

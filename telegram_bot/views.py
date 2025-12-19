@@ -81,7 +81,8 @@ def handle_command(chat_id, text):
         parts = text.split()
         if len(parts) != 2:
             bot_service.send_message(
-                chat_id=chat_id, text="❌ Неверный формат команды. Используйте: /connect КОД_ПОДКЛЮЧЕНИЯ"
+                chat_id=chat_id,
+                text="❌ Неверный формат команды. Используйте: /connect КОД_ПОДКЛЮЧЕНИЯ",
             )
             return JsonResponse({"status": "ok"})
 
@@ -111,7 +112,10 @@ def handle_command(chat_id, text):
         bot_service.send_message(chat_id=chat_id, text=message)
 
     else:
-        bot_service.send_message(chat_id=chat_id, text="❌ Неизвестная команда. Используйте /help для списка команд")
+        bot_service.send_message(
+            chat_id=chat_id,
+            text="❌ Неизвестная команда. Используйте /help для списка команд",
+        )
 
     return JsonResponse({"status": "ok"})
 
@@ -125,7 +129,8 @@ def handle_connection(chat_id, connection_code, bot_service):
 
         if not user:
             bot_service.send_message(
-                chat_id=chat_id, text="❌ Код подключения не найден. Убедитесь что код правильный."
+                chat_id=chat_id,
+                text="❌ Код подключения не найден. Убедитесь что код правильный.",
             )
             return JsonResponse({"status": "ok"})
 
@@ -146,13 +151,18 @@ def handle_connection(chat_id, connection_code, bot_service):
                 f"Используйте /status для проверки подключения."
             )
         else:
-            message = "✅ Подключение обновлено!\n\n" "Теперь вы будете получать уведомления в этот чат."
+            message = (
+                "✅ Подключение обновлено!\n\n"
+                "Теперь вы будете получать уведомления в этот чат."
+            )
 
         bot_service.send_message(chat_id=chat_id, text=message)
 
     except Exception as e:
         logger.error(f"Ошибка подключения: {e}")
-        bot_service.send_message(chat_id=chat_id, text="❌ Ошибка подключения. Попробуйте позже.")
+        bot_service.send_message(
+            chat_id=chat_id, text="❌ Ошибка подключения. Попробуйте позже."
+        )
 
     return JsonResponse({"status": "ok"})
 
@@ -172,7 +182,9 @@ def handle_disconnect(chat_id, bot_service):
 
     except Exception as e:
         logger.error(f"Ошибка отключения: {e}")
-        bot_service.send_message(chat_id=chat_id, text="❌ Ошибка отключения. Попробуйте позже.")
+        bot_service.send_message(
+            chat_id=chat_id, text="❌ Ошибка отключения. Попробуйте позже."
+        )
 
     return JsonResponse({"status": "ok"})
 
@@ -213,7 +225,10 @@ def handle_message(chat_id, text):
     bot_service = TelegramBotService()
 
     # Простой эхо - для тестирования
-    bot_service.send_message(chat_id=chat_id, text=f"Вы сказали: {text}\n\nИспользуйте /help для списка команд")
+    bot_service.send_message(
+        chat_id=chat_id,
+        text=f"Вы сказали: {text}\n\nИспользуйте /help для списка команд",
+    )
 
     return JsonResponse({"status": "ok"})
 
@@ -233,6 +248,8 @@ def handle_callback_query(chat_id, callback_data):
     elif callback_data.startswith("postpone_"):
         # Отложить напоминание
         habit_id = callback_data.replace("postpone_", "")
-        bot_service.send_message(chat_id=chat_id, text="⏰ Напоминание отложено на 15 минут.")
+        bot_service.send_message(
+            chat_id=chat_id, text="⏰ Напоминание отложено на 15 минут."
+        )
 
     return JsonResponse({"status": "ok"})

@@ -12,7 +12,9 @@ class FinalHabitCompletionTest(TestCase):
     """Финальные тесты для модели выполнения привычек"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username="testuser", password="testpass123")
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123"
+        )
 
         # Создаем привычку
         self.habit = Habit.objects.create(
@@ -29,7 +31,10 @@ class FinalHabitCompletionTest(TestCase):
     def test_create_completion_success(self):
         """Тест успешного создания выполнения"""
         completion = HabitCompletion.objects.create(
-            habit=self.habit, completed_at=datetime.now(), is_completed=True, note="Выполнено успешно"
+            habit=self.habit,
+            completed_at=datetime.now(),
+            is_completed=True,
+            note="Выполнено успешно",
         )
 
         self.assertEqual(completion.habit, self.habit)
@@ -41,7 +46,10 @@ class FinalHabitCompletionTest(TestCase):
     def test_completion_string_representation(self):
         """Тест строкового представления выполнения"""
         completion = HabitCompletion.objects.create(
-            habit=self.habit, completed_at=datetime.now(), is_completed=True, note="Тестовое выполнение"
+            habit=self.habit,
+            completed_at=datetime.now(),
+            is_completed=True,
+            note="Тестовое выполнение",
         )
 
         completion_str = str(completion)
@@ -53,14 +61,24 @@ class FinalHabitCompletionTest(TestCase):
 
         # Может содержать символ выполнения или название привычки
         has_expected_content = any(
-            ["✓" in completion_str, "Утренняя зарядка" in completion_str, "зарядка" in completion_str.lower()]
+            [
+                "✓" in completion_str,
+                "Утренняя зарядка" in completion_str,
+                "зарядка" in completion_str.lower(),
+            ]
         )
-        self.assertTrue(has_expected_content, f"Строка не содержит ожидаемых элементов: {completion_str}")
+        self.assertTrue(
+            has_expected_content,
+            f"Строка не содержит ожидаемых элементов: {completion_str}",
+        )
 
     def test_single_completion_only(self):
         """Тест только одного выполнения (без проверки связи)"""
         completion = HabitCompletion.objects.create(
-            habit=self.habit, completed_at=datetime.now(), is_completed=True, note="Единственное выполнение"
+            habit=self.habit,
+            completed_at=datetime.now(),
+            is_completed=True,
+            note="Единственное выполнение",
         )
 
         self.assertEqual(completion.habit, self.habit)
@@ -69,7 +87,10 @@ class FinalHabitCompletionTest(TestCase):
     def test_completion_with_false_status(self):
         """Тест выполнения с статусом невыполнено"""
         completion = HabitCompletion.objects.create(
-            habit=self.habit, completed_at=datetime.now(), is_completed=False, note="Пропущено"
+            habit=self.habit,
+            completed_at=datetime.now(),
+            is_completed=False,
+            note="Пропущено",
         )
 
         self.assertFalse(completion.is_completed)

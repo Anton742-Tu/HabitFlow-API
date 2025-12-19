@@ -119,7 +119,6 @@ docker-compose-ci.yml
 # Docker Compose
 docker-compose.override.yml
 docker-compose.prod.yml
-docker-compose.staging.yml
 
 # Docker volumes
 **/pgdata/

@@ -11,4 +11,6 @@ class Command(BaseCommand):
 
         reminders_sent = send_scheduled_reminders()
 
-        self.stdout.write(self.style.SUCCESS(f"✅ Отправлено {reminders_sent} напоминаний"))
+        self.stdout.write(
+            self.style.SUCCESS(f"✅ Отправлено {reminders_sent} напоминаний")
+        )
