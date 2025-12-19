@@ -96,10 +96,10 @@ CSRF_COOKIE_SECURE = not DEBUG  # Только HTTPS в production
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax" if DEBUG else "Strict"
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8080',
-    'http://127.0.0.1:8080',
-    f'http://158.160.207.244:8080',
-    f'https://158.160.207.244:8443',
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://158.160.207.244:8080",
+    "https://158.160.207.244:8443",
 ]
 
 SESSION_COOKIE_SECURE = not DEBUG
@@ -230,7 +230,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # REST_FRAMEWORK
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
@@ -257,14 +259,22 @@ REST_FRAMEWORK = {
 
 # Включаем browsable API только в DEBUG режиме
 if DEBUG:
-    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append("rest_framework.renderers.BrowsableAPIRenderer")
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append(
+        "rest_framework.renderers.BrowsableAPIRenderer"
+    )
     REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append("rest_framework.parsers.FormParser")
-    REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append("rest_framework.parsers.MultiPartParser")
+    REST_FRAMEWORK["DEFAULT_PARSER_CLASSES"].append(
+        "rest_framework.parsers.MultiPartParser"
+    )
 
 # Simple JWT
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=int(os.getenv("JWT_ACCESS_TOKEN_LIFETIME", 86400))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(seconds=int(os.getenv("JWT_REFRESH_TOKEN_LIFETIME", 604800))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        seconds=int(os.getenv("JWT_ACCESS_TOKEN_LIFETIME", 86400))
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        seconds=int(os.getenv("JWT_REFRESH_TOKEN_LIFETIME", 604800))
+    ),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -290,7 +300,11 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
 # CORS
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if os.getenv("CORS_ALLOWED_ORIGINS") else []
+CORS_ALLOWED_ORIGINS = (
+    os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if os.getenv("CORS_ALLOWED_ORIGINS")
+    else []
+)
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Разрешаем все origins в режиме отладки
 
 # Habit Validation Settings

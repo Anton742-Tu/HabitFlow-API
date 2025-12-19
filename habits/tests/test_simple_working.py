@@ -26,7 +26,9 @@ class SimpleWorkingTest(TestCase):
     def test_create_user(self):
         """Тест создания пользователя"""
         print("1. Создаем пользователя...")
-        user = User.objects.create_user(username="testuser", password="testpass123", email="test@example.com")
+        user = User.objects.create_user(
+            username="testuser", password="testpass123", email="test@example.com"
+        )
 
         self.assertEqual(user.username, "testuser")
         self.assertEqual(user.email, "test@example.com")

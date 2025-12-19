@@ -13,7 +13,9 @@ class SerializersTestCase(TestCase):
     """Тесты для сериализаторов"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username="testuser", password="testpass123")
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123"
+        )
 
         self.habit_data = {
             "user": self.user,
@@ -44,7 +46,12 @@ class SerializersTestCase(TestCase):
     def test_habit_serializer_validation(self):
         """Тест валидации в HabitSerializer"""
         # Тест с некорректной длительностью (> 120 секунд)
-        invalid_data = {"place": "Дом", "time": "08:00", "action": "Тест", "duration": 130}  # > 120
+        invalid_data = {
+            "place": "Дом",
+            "time": "08:00",
+            "action": "Тест",
+            "duration": 130,
+        }  # > 120
 
         serializer = HabitSerializer(data=invalid_data)
         self.assertFalse(serializer.is_valid())

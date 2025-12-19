@@ -5,7 +5,7 @@
     environment:
       POSTGRES_DB: habitflow_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -47,11 +47,11 @@
       DJANGO_SETTINGS_MODULE: config.settings
       PYTHONPATH: /app
       DEBUG: "True"  # временно включите для отладки
-      DJANGO_SECRET_KEY: django-insecure-production-key-change-me
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-key}
       POSTGRES_HOST: db
       POSTGRES_DB: habitflow_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       ALLOWED_HOSTS: localhost,127.0.0.1,web,nginx,158.160.207.244

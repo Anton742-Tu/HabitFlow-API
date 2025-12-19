@@ -13,14 +13,24 @@ class HabitCompletionSerializerTest(TestCase):
     """Тесты для сериализатора выполнения привычек"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username="testuser", password="testpass123")
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123"
+        )
 
         self.habit = Habit.objects.create(
-            user=self.user, place="Дом", time=time(9, 0), action="Утренняя зарядка", duration=60, frequency="daily"
+            user=self.user,
+            place="Дом",
+            time=time(9, 0),
+            action="Утренняя зарядка",
+            duration=60,
+            frequency="daily",
         )
 
         self.completion = HabitCompletion.objects.create(
-            habit=self.habit, completed_at=datetime.now(), is_completed=True, note="Тестовое выполнение"
+            habit=self.habit,
+            completed_at=datetime.now(),
+            is_completed=True,
+            note="Тестовое выполнение",
         )
 
     def test_completion_serializer(self):

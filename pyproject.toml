@@ -1,73 +1,110 @@
 [tool.poetry]
 name = "habitflow-api"
-version = "0.1.0"
-description = "API для трекера привычек"
-authors = ["Your Name <you@example.com>"]
+version = "1.0.0"
+description = "🚀 HabitFlow API - Трекер полезных привычек по методологии Atomic Habits"
+authors = ["Anton-Tu <anton.tumashov@example.com>"]
 readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/Anton742-Tu/HabitFlow-API"
+repository = "https://github.com/Anton742-Tu/HabitFlow-API"
+keywords = ["django", "habits", "atomic-habits", "api", "telegram-bot"]
 
 [tool.poetry.dependencies]
 python = "^3.12"
+# Django Core
 Django = "^5.2"
 djangorestframework = "^3.14"
-psycopg2-binary = "^2.9"
-django-cors-headers = "^4.2"
 djangorestframework-simplejwt = "^5.3"
+
+# Database
+psycopg2-binary = "^2.9"
+
+# API & Documentation
+drf-yasg = "^1.21"
+django-filter = "^25.2"
+django-cors-headers = "^4.2"
+
+# Task Queue (Celery)
 celery = "^5.3"
 redis = "^5.0"
+django-celery-beat = "^2.8"
+django-celery-results = "^2.6"
+
+# Telegram Bot
 python-telegram-bot = "^20.3"
-drf-yasg = "^1.21"
+
+# Utilities
 python-dotenv = "^1.0"
 gunicorn = "^21.2"
 whitenoise = "^6.0"
-build = "==1.3.0"
-cachecontrol = "==0.14.4"
-charset-normalizer = "==3.4.4"
-cleo = "==2.1.0"
-crashtest = "==0.4.1"
-cron-descriptor = "==2.0.6"
-distlib = "==0.4.0"
-django-celery-beat = "==2.8.1"
-django-filter = "==25.2"
-django-timezone-field = "==7.2.1"
-django-celery-results = "==2.6.0"
-djangorestframework-stubs = "==3.16.6"
-dulwich = "==0.24.10"
-execnet = "==2.1.2"
-fastjsonschema = "==2.21.2"
-filelock = "==3.20.0"
-findpython = "==0.7.1"
-installer = "==0.7.0"
-jaraco-classes = "==3.4.0"
-jaraco-context = "==6.0.1"
-jaraco-functools = "==4.3.0"
-keyring = "==25.7.0"
-more-itertools = "==10.8.0"
-msgpack = "==1.1.2"
-pbs-installer = "==2025.12.2"
-pillow = "==12.0.0"
-pkginfo = "==1.12.1.2"
-drf-spectacular = "==0.27.1"
-setuptools = "==70.0.0"
+pillow = "^12.0"
+
+# Windows-specific (можно удалить если не нужно)
+django-timezone-field = {version = "^7.2", optional = true}
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.4"
-pytest-django = "^4.7"
-coverage = "^7.4"
-black = "^24.0"
+# Testing
+pytest = "^8.0"
+pytest-django = "^4.8"
+pytest-cov = "^4.1"
+pytest-mock = "^3.12"
+pytest-xdist = "^3.5"
+factory-boy = "^3.3"
+Faker = "^23.0"
+
+# Code Quality
+black = "^24.1"
+isort = "^5.13"
 flake8 = "^7.0"
 mypy = "^1.8"
+pre-commit = "^3.6"
+bandit = "^1.7"
+
+# Development Tools
+django-extensions = "^3.2"
+ipython = "^8.22"
+debugpy = "^1.8"
+watchfiles = "^0.21"
+
+# Type Stubs
 django-stubs = "^5.0"
+djangorestframework-stubs = "^3.16"
+types-requests = "^2.31"
+types-redis = "^4.6"
+
+# Documentation
+sphinx = "^7.2"
+sphinx-rtd-theme = "^2.0"
+
+[tool.poetry.group.lint.dependencies]
+# Линтеры для CI
+black = "^24.1"
+isort = "^5.13"
+flake8 = "^7.0"
+mypy = "^1.8"
+
+[tool.poetry.group.ci.dependencies]
+# Для CI/CD
+coverage = "^7.4"
+pytest-html = "^4.1"
+python-semantic-release = "^9.0"
+
+[tool.poetry.extras]
+windows = ["django-timezone-field"]
+production = ["gunicorn", "whitenoise"]
+development = ["django-extensions", "ipython", "debugpy"]
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-line-length = 119
-target-version = ['py310']
+line-length = 88
+target-version = ['py312']
 include = '\.pyi?$'
-exclude = '''
+extend-exclude = '''
 /(
+  \.eggs
   | \.git
   | \.hg
   | \.mypy_cache
@@ -78,20 +115,66 @@ exclude = '''
   | build
   | dist
   | migrations
+  | staticfiles
 )/
 '''
 
 [tool.isort]
 profile = "black"
-line_length = 119
-skip = ["migrations", "venv", ".venv"]
-known_first_party = ["habits"]
-[dependency-groups]
-lint = [
-    "black (>=25.11.0,<26.0.0)",
-    "isort (>=7.0.0,<8.0.0)",
-    "mypy (>=1.19.0,<2.0.0)"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+known_first_party = ["habits", "users", "telegram_bot", "config"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = [
+    "migrations/",
+    ".venv/",
+    "venv/",
+    ".env/",
+    "env/",
+    "tests/",
+    "staticfiles/",
+    "scripts/",
 ]
-dev = [
-    "flake8 (>=7.3.0,<8.0.0)"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["habits", "users", "telegram_bot"]
+addopts = "-v --tb=short --strict-markers --disable-warnings"
+markers = [
+    "slow: slow running tests",
+    "integration: integration tests",
+    "unit: unit tests",
+    "auth: authentication tests",
+    "api: API tests",
+    "telegram: telegram bot tests",
+]
+
+[tool.coverage.run]
+source = ["habits", "users", "telegram_bot"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
 ]

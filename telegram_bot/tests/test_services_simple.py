@@ -17,7 +17,12 @@ class TestServicesSimple(TestCase):
     def test_telegram_message_logic(self):
         """Тест логики сообщений Telegram"""
         # Тестируем логику форматирования сообщений
-        test_data = {"habit_name": "Утренняя зарядка", "time": "08:00", "place": "Дом", "completed": True}
+        test_data = {
+            "habit_name": "Утренняя зарядка",
+            "time": "08:00",
+            "place": "Дом",
+            "completed": True,
+        }
 
         # Проверяем форматирование строк
         message_template = "Привычка: {habit_name}\nВремя: {time}\nМесто: {place}"

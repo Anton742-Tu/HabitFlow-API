@@ -23,12 +23,18 @@ class Command(BaseCommand):
             # Отправляем конкретному пользователю
             user = User.objects.filter(username=options["user"]).first()
             if not user:
-                self.stdout.write(self.style.ERROR(f'❌ Пользователь {options["user"]} не найден'))
+                self.stdout.write(
+                    self.style.ERROR(f'❌ Пользователь {options["user"]} не найден')
+                )
                 return
 
             telegram_user = TelegramUser.objects.filter(user=user).first()
             if not telegram_user:
-                self.stdout.write(self.style.ERROR(f"❌ Пользователь {user.username} не подключен к Telegram"))
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"❌ Пользователь {user.username} не подключен к Telegram"
+                    )
+                )
                 return
 
             # Получаем или создаем тестовую привычку
@@ -40,7 +46,9 @@ class Command(BaseCommand):
             # Отправляем всем подключенным пользователям
             telegram_users = TelegramUser.objects.filter(is_active=True)
 
-            self.stdout.write(f"📨 Отправка тестовых напоминаний {telegram_users.count()} пользователям...")
+            self.stdout.write(
+                f"📨 Отправка тестовых напоминаний {telegram_users.count()} пользователям..."
+            )
 
             for telegram_user in telegram_users:
                 # Получаем первую привычку пользователя
@@ -50,7 +58,11 @@ class Command(BaseCommand):
 
                 self.send_reminder(telegram_user, habit, bot_service)
 
-            self.stdout.write(self.style.SUCCESS(f"\n✅ Отправлено {telegram_users.count()} напоминаний"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"\n✅ Отправлено {telegram_users.count()} напоминаний"
+                )
+            )
 
     def get_test_habit(self, user, habit_id=None):
         """Получаем тестовую привычку"""
@@ -79,19 +91,31 @@ class Command(BaseCommand):
             duration=60,
             is_public=False,
         )
-        self.stdout.write(self.style.SUCCESS(f"  ✅ Создана тестовая привычка для {user.username}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"  ✅ Создана тестовая привычка для {user.username}")
+        )
         return habit
 
     def send_reminder(self, telegram_user, habit, bot_service):
         """Отправка напоминания"""
         try:
-            result = bot_service.send_habit_reminder(chat_id=telegram_user.chat_id, habit=habit)
+            result = bot_service.send_habit_reminder(
+                chat_id=telegram_user.chat_id, habit=habit
+            )
 
             if result:
-                self.stdout.write(self.style.SUCCESS(f"  ✅ Напоминание отправлено {telegram_user.user.username}"))
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"  ✅ Напоминание отправлено {telegram_user.user.username}"
+                    )
+                )
                 self.stdout.write(f"     Привычка: {habit.action}")
             else:
-                self.stdout.write(self.style.ERROR(f"  ❌ Ошибка отправки {telegram_user.user.username}"))
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"  ❌ Ошибка отправки {telegram_user.user.username}"
+                    )
+                )
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"  ❌ Ошибка: {e}"))

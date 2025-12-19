@@ -18,7 +18,9 @@ User = get_user_model()
 def _handle_connect_command(chat_id, connection_code, bot_service, message):
     """Обработка команды подключения"""
     try:
-        code_obj = TelegramConnectionCode.objects.filter(code=connection_code, is_used=False).first()
+        code_obj = TelegramConnectionCode.objects.filter(
+            code=connection_code, is_used=False
+        ).first()
 
         if not code_obj:
             bot_service.send_message(
@@ -89,7 +91,8 @@ def _handle_connect_command(chat_id, connection_code, bot_service, message):
     except Exception as e:
         logger.error(f"Ошибка подключения: {e}")
         bot_service.send_message(
-            chat_id, "❌ <b>Ошибка подключения</b>\n\nПопробуйте позже или обратитесь в поддержку."
+            chat_id,
+            "❌ <b>Ошибка подключения</b>\n\nПопробуйте позже или обратитесь в поддержку.",
         )
 
 
@@ -99,7 +102,10 @@ def _handle_stats_command(chat_id, bot_service):
         telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
 
         if not telegram_user:
-            bot_service.send_message(chat_id, "❌ <b>Сначала подключите аккаунт!</b>\n\nИспользуйте /connect КОД")
+            bot_service.send_message(
+                chat_id,
+                "❌ <b>Сначала подключите аккаунт!</b>\n\nИспользуйте /connect КОД",
+            )
             return
 
         user = telegram_user.user
@@ -107,7 +113,9 @@ def _handle_stats_command(chat_id, bot_service):
         from django.db import models
 
         total_habits = user.habits.count()
-        completed_today = user.habits.filter(completions__completed_at__date=timezone.now().date()).count()
+        completed_today = user.habits.filter(
+            completions__completed_at__date=timezone.now().date()
+        ).count()
 
         pleasant_habits = user.habits.filter(is_pleasant=True).count()
         useful_habits = user.habits.filter(is_pleasant=False).count()
@@ -153,7 +161,11 @@ def _answer_callback_query(callback_query_id, text):
     try:
         response = requests.post(
             f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/answerCallbackQuery",
-            json={"callback_query_id": callback_query_id, "text": text, "show_alert": False},
+            json={
+                "callback_query_id": callback_query_id,
+                "text": text,
+                "show_alert": False,
+            },
         )
 
         if response.status_code != 200:
@@ -182,7 +194,8 @@ def _handle_callback_query(chat_id, data, bot_service, callback_query):
         habit_id = data.replace("postpone_", "")
 
         bot_service.send_message(
-            chat_id, "⏰ <b>Напоминание отложено на 15 минут</b>\n\nВы получите новое напоминание через 15 минут."
+            chat_id,
+            "⏰ <b>Напоминание отложено на 15 минут</b>\n\nВы получите новое напоминание через 15 минут.",
         )
 
         _answer_callback_query(callback_query["id"], "Напоминание отложено")
@@ -194,7 +207,10 @@ def _handle_settings_command(chat_id, bot_service):
         telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
 
         if not telegram_user:
-            bot_service.send_message(chat_id, "❌ <b>Сначала подключите аккаунт!</b>\n\nИспользуйте /connect КОД")
+            bot_service.send_message(
+                chat_id,
+                "❌ <b>Сначала подключите аккаунт!</b>\n\nИспользуйте /connect КОД",
+            )
             return
 
         response_text = (
@@ -298,7 +314,8 @@ def _handle_message(chat_id, text, bot_service, message):
 
     else:
         bot_service.send_message(
-            chat_id, "🤔 <b>Не понял команду</b>\n\nИспользуйте /help для списка доступных команд"
+            chat_id,
+            "🤔 <b>Не понял команду</b>\n\nИспользуйте /help для списка доступных команд",
         )
 
 
@@ -331,10 +348,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not settings.TELEGRAM_BOT_TOKEN:
-            self.stdout.write(self.style.ERROR("❌ Токен бота не найден. Добавьте TELEGRAM_BOT_TOKEN в .env"))
+            self.stdout.write(
+                self.style.ERROR(
+                    "❌ Токен бота не найден. Добавьте TELEGRAM_BOT_TOKEN в .env"
+                )
+            )
             return
 
-        self.stdout.write(self.style.SUCCESS("🤖 Запуск Telegram бота в режиме polling..."))
+        self.stdout.write(
+            self.style.SUCCESS("🤖 Запуск Telegram бота в режиме polling...")
+        )
         self.stdout.write("⚡ Бот будет проверять новые сообщения каждую секунду")
         self.stdout.write("🛑 Для остановки нажмите Ctrl+C")
 
@@ -349,7 +372,9 @@ class Command(BaseCommand):
                         params={
                             "offset": offset,
                             "timeout": 10,
-                            "allowed_updates": json.dumps(["message", "callback_query"]),
+                            "allowed_updates": json.dumps(
+                                ["message", "callback_query"]
+                            ),
                         },
                         timeout=15,
                     )

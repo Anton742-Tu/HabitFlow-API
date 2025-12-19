@@ -12,7 +12,9 @@ class CorrectHabitModelTest(TestCase):
     """Исправленные тесты модели Habit"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username="testuser", password="testpass123")
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123"
+        )
 
     def test_create_habit_with_all_fields(self):
         """Тест создания привычки со всеми полями"""

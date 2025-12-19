@@ -34,7 +34,9 @@ class TelegramBotService:
             if reply_markup:
                 payload["reply_markup"] = reply_markup
 
-            response = requests.post(f"{self.base_url}/sendMessage", json=payload, timeout=10)
+            response = requests.post(
+                f"{self.base_url}/sendMessage", json=payload, timeout=10
+            )
 
             if response.status_code == 200:
                 data = response.json()
@@ -45,7 +47,9 @@ class TelegramBotService:
                     self.logger.error(f"Telegram API error: {data.get('description')}")
                     return False  # ← Должен возвращать False
             else:
-                self.logger.error(f"Telegram API error: {response.status_code} - {response.text}")
+                self.logger.error(
+                    f"Telegram API error: {response.status_code} - {response.text}"
+                )
                 return False  # ← Должен возвращать False
         except Exception as e:
             self.logger.error(f"Unexpected error sending Telegram message: {e}")
@@ -68,7 +72,10 @@ class TelegramBotService:
             "inline_keyboard": [
                 [
                     {"text": "✅ Выполнено", "callback_data": f"complete_{habit.id}"},
-                    {"text": "⏰ Отложить на 15 мин", "callback_data": f"postpone_{habit.id}"},
+                    {
+                        "text": "⏰ Отложить на 15 мин",
+                        "callback_data": f"postpone_{habit.id}",
+                    },
                 ]
             ]
         }
@@ -81,17 +88,23 @@ class TelegramBotService:
         from habits.models import HabitCompletion
 
         today = timezone.now().date()
-        completions_today = HabitCompletion.objects.filter(habit__user=user, completed_at__date=today).count()
+        completions_today = HabitCompletion.objects.filter(
+            habit__user=user, completed_at__date=today
+        ).count()
 
         total_habits = user.habits.count()
-        completion_rate = (completions_today / total_habits * 100) if total_habits > 0 else 0
+        completion_rate = (
+            (completions_today / total_habits * 100) if total_habits > 0 else 0
+        )
 
         # Находим ближайшие привычки
         now = timezone.now()
         next_habits = user.hits.filter(time__gt=now.time()).order_by("time")[:3]
 
         next_habits_text = (
-            "\n".join([f"• {h.time.strftime('%H:%M')} - {h.action}" for h in next_habits])
+            "\n".join(
+                [f"• {h.time.strftime('%H:%M')} - {h.action}" for h in next_habits]
+            )
             if next_habits
             else "На сегодня привычек больше нет! 🎉"
         )
@@ -119,15 +132,23 @@ class TelegramBotService:
         week_ago = timezone.now() - timedelta(days=7)
 
         # Статистика за неделю
-        weekly_completions = HabitCompletion.objects.filter(habit__user=user, completed_at__gte=week_ago).count()
+        weekly_completions = HabitCompletion.objects.filter(
+            habit__user=user, completed_at__gte=week_ago
+        ).count()
 
         # Процент выполнения
         habits = user.habits.all()
         total_expected = sum(7 / h.frequency_days for h in habits)
-        completion_rate = (weekly_completions / total_expected * 100) if total_expected > 0 else 0
+        completion_rate = (
+            (weekly_completions / total_expected * 100) if total_expected > 0 else 0
+        )
 
         # Самая успешная привычка
-        successful_habit = habits.annotate(completion_count=Count("completions")).order_by("-completion_count").first()
+        successful_habit = (
+            habits.annotate(completion_count=Count("completions"))
+            .order_by("-completion_count")
+            .first()
+        )
 
         # Длиннейшая серия
         streak = self._calculate_streak(user)
@@ -155,7 +176,9 @@ class TelegramBotService:
         month_ago = timezone.now() - timedelta(days=30)
 
         completion_dates = (
-            HabitCompletion.objects.filter(habit__user=user, completed_at__gte=month_ago)
+            HabitCompletion.objects.filter(
+                habit__user=user, completed_at__gte=month_ago
+            )
             .dates("completed_at", "day")
             .order_by("-completed_at")
         )

@@ -16,23 +16,34 @@ class Command(BaseCommand):
         # Находим всех подключенных пользователей
         telegram_users = TelegramUser.objects.filter(is_active=True)
 
-        self.stdout.write(f"📊 Отправка ежедневных отчетов {telegram_users.count()} пользователям...")
+        self.stdout.write(
+            f"📊 Отправка ежедневных отчетов {telegram_users.count()} пользователям..."
+        )
 
         for telegram_user in telegram_users:
             try:
                 user = telegram_user.user
 
                 # Статистика за сегодня
-                completions_today = HabitCompletion.objects.filter(habit__user=user, completed_at__date=today).count()
+                completions_today = HabitCompletion.objects.filter(
+                    habit__user=user, completed_at__date=today
+                ).count()
 
                 total_habits = user.habits.count()
-                completion_rate = (completions_today / total_habits * 100) if total_habits > 0 else 0
+                completion_rate = (
+                    (completions_today / total_habits * 100) if total_habits > 0 else 0
+                )
 
                 # Привычки на завтра
                 tomorrow_habits = user.habits.order_by("time")[:3]
 
                 tomorrow_text = (
-                    "\n".join([f"• {h.time.strftime('%H:%M')} - {h.action}" for h in tomorrow_habits])
+                    "\n".join(
+                        [
+                            f"• {h.time.strftime('%H:%M')} - {h.action}"
+                            for h in tomorrow_habits
+                        ]
+                    )
                     if tomorrow_habits
                     else "На завтра привычек нет"
                 )
@@ -49,9 +60,19 @@ class Command(BaseCommand):
                 )
 
                 bot_service.send_message(telegram_user.chat_id, message)
-                self.stdout.write(self.style.SUCCESS(f"  ✅ Отчет отправлен {user.username}"))
+                self.stdout.write(
+                    self.style.SUCCESS(f"  ✅ Отчет отправлен {user.username}")
+                )
 
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"  ❌ Ошибка для {telegram_user.user.username}: {e}"))
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"  ❌ Ошибка для {telegram_user.user.username}: {e}"
+                    )
+                )
 
-        self.stdout.write(self.style.SUCCESS(f"\n✅ Отправлено {telegram_users.count()} ежедневных отчетов"))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"\n✅ Отправлено {telegram_users.count()} ежедневных отчетов"
+            )
+        )

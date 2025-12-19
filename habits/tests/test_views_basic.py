@@ -14,7 +14,11 @@ class TestHabitViewsBasic(TestCase):
 
         # Создаем привычку
         self.habit = Habit.objects.create(
-            user=self.user, action="Test Action", time="09:00:00", place="Home", frequency="daily"
+            user=self.user,
+            action="Test Action",
+            time="09:00:00",
+            place="Home",
+            frequency="daily",
         )
 
     def test_habit_creation(self):
@@ -55,7 +59,12 @@ class TestHabitViewsBasic(TestCase):
     def test_habit_with_pleasant_flag(self):
         """Тест приятной привычки"""
         pleasant_habit = Habit.objects.create(
-            user=self.user, action="Расслабление", time="20:00:00", place="Диван", is_pleasant=True, frequency="daily"
+            user=self.user,
+            action="Расслабление",
+            time="20:00:00",
+            place="Диван",
+            is_pleasant=True,
+            frequency="daily",
         )
 
         self.assertTrue(pleasant_habit.is_pleasant)

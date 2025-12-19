@@ -50,7 +50,12 @@ class HabitPermissionsTestCase(TestCase):
         # PUT (обновление) своей привычки
         response = self.client.put(
             f"/api/habits/{self.private_habit.id}/",
-            {"place": "Новое место", "time": "10:00", "action": "Обновлено", "duration": 60},
+            {
+                "place": "Новое место",
+                "time": "10:00",
+                "action": "Обновлено",
+                "duration": 60,
+            },
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -67,7 +72,9 @@ class HabitPermissionsTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
         # PUT приватной привычки другого пользователя - 404
-        response = self.client.put(f"/api/habits/{self.private_habit.id}/", {"place": "Пытаюсь изменить"})
+        response = self.client.put(
+            f"/api/habits/{self.private_habit.id}/", {"place": "Пытаюсь изменить"}
+        )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_user_can_view_public_habits_but_not_modify(self):
@@ -79,7 +86,9 @@ class HabitPermissionsTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # PUT публичной привычки другого пользователя - запрещено
-        response = self.client.put(f"/api/habits/{self.public_habit.id}/", {"place": "Пытаюсь изменить"})
+        response = self.client.put(
+            f"/api/habits/{self.public_habit.id}/", {"place": "Пытаюсь изменить"}
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
         # DELETE публичной привычки - запрещено
@@ -98,7 +107,8 @@ class HabitPermissionsTestCase(TestCase):
 
         # POST (создание) - требует аутентификации
         response = self.client.post(
-            "/api/habits/", {"place": "Тест", "time": "10:00", "action": "Новая", "duration": 60}
+            "/api/habits/",
+            {"place": "Тест", "time": "10:00", "action": "Новая", "duration": 60},
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -153,7 +163,11 @@ class HabitPermissionsTestCase(TestCase):
         response = self.client.get("/api/habits/my_habits/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        habits = response.data.get("results", []) if "results" in response.data else response.data
+        habits = (
+            response.data.get("results", [])
+            if "results" in response.data
+            else response.data
+        )
         for habit in habits:
             self.assertEqual(habit.get("user", {}).get("username"), "user1")
 
@@ -170,7 +184,9 @@ class HabitPermissionsTestCase(TestCase):
             "is_public": True,
         }
 
-        response = self.client.put(f"/api/habits/{self.private_habit.id}/", data, format="json")
+        response = self.client.put(
+            f"/api/habits/{self.private_habit.id}/", data, format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.private_habit.refresh_from_db()
@@ -183,13 +199,20 @@ class HabitPermissionsTestCase(TestCase):
 
         data = {"action": "Пытаюсь изменить чужую привычку"}
 
-        response = self.client.patch(f"/api/habits/{self.public_habit.id}/", data, format="json")
+        response = self.client.patch(
+            f"/api/habits/{self.public_habit.id}/", data, format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_unauthenticated_cannot_create_habit(self):
         """Неаутентифицированный пользователь не может создать привычку"""
-        data = {"place": "Тест", "time": "08:00", "action": "Новая привычка", "duration": 60}
+        data = {
+            "place": "Тест",
+            "time": "08:00",
+            "action": "Новая привычка",
+            "duration": 60,
+        }
 
         response = self.client.post("/api/habits/", data, format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

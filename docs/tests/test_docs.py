@@ -21,7 +21,11 @@ class TestDocsConfiguration(TestCase):
     def test_api_schema_generation(self):
         """Тест логики генерации схемы API"""
         # Простая логика для теста
-        api_info = {"title": "HabitFlow API", "version": "1.0.0", "description": "API для трекера привычек"}
+        api_info = {
+            "title": "HabitFlow API",
+            "version": "1.0.0",
+            "description": "API для трекера привычек",
+        }
 
         self.assertEqual(api_info["title"], "HabitFlow API")
         self.assertEqual(api_info["version"], "1.0.0")
@@ -36,7 +40,11 @@ class TestDocsConfiguration(TestCase):
         # Проверяем наличие docs или api в URL patterns
         url_patterns = [str(pattern) for pattern in resolver.url_patterns]
 
-        docs_patterns = [p for p in url_patterns if "docs" in str(p).lower() or "api" in str(p).lower()]
+        docs_patterns = [
+            p
+            for p in url_patterns
+            if "docs" in str(p).lower() or "api" in str(p).lower()
+        ]
 
         # Должен быть хотя бы один API-related pattern
         self.assertTrue(len(docs_patterns) > 0)

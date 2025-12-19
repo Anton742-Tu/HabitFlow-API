@@ -9,7 +9,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not settings.TELEGRAM_BOT_TOKEN:
-            self.stdout.write(self.style.ERROR("Токен бота не настроен. Укажите TELEGRAM_BOT_TOKEN в .env"))
+            self.stdout.write(
+                self.style.ERROR(
+                    "Токен бота не настроен. Укажите TELEGRAM_BOT_TOKEN в .env"
+                )
+            )
             return
 
         # Настраиваем вебхук
@@ -21,22 +25,33 @@ class Command(BaseCommand):
         try:
             # Устанавливаем вебхук
             response = requests.post(
-                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/setWebhook", json={"url": webhook_url}
+                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/setWebhook",
+                json={"url": webhook_url},
             )
 
             if response.status_code == 200:
-                self.stdout.write(self.style.SUCCESS(f"Вебхук установлен: {webhook_url}"))
+                self.stdout.write(
+                    self.style.SUCCESS(f"Вебхук установлен: {webhook_url}")
+                )
 
                 # Получаем информацию о боте
-                bot_info = requests.get(f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getMe").json()
+                bot_info = requests.get(
+                    f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getMe"
+                ).json()
 
                 if bot_info["ok"]:
                     bot = bot_info["result"]
-                    self.stdout.write(self.style.SUCCESS(f'Бот запущен: @{bot.get("username")}'))
+                    self.stdout.write(
+                        self.style.SUCCESS(f'Бот запущен: @{bot.get("username")}')
+                    )
                 else:
-                    self.stdout.write(self.style.WARNING("Не удалось получить информацию о боте"))
+                    self.stdout.write(
+                        self.style.WARNING("Не удалось получить информацию о боте")
+                    )
             else:
-                self.stdout.write(self.style.ERROR(f"Ошибка установки вебхука: {response.text}"))
+                self.stdout.write(
+                    self.style.ERROR(f"Ошибка установки вебхука: {response.text}")
+                )
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Ошибка запуска бота: {e}"))

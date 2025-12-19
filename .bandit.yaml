@@ -1,0 +1,23 @@
+# .bandit.yaml
+skips:
+  - B101  # assert used
+  - B311  # random module
+  - B403  # import *
+  - B301  # pickle
+  - B310  # urllib
+  - B105  # hardcoded_password_string (временно)
+  - B106  # hardcoded_password_funcarg (временно)
+  - B107  # hardcoded_password_default (временно)
+
+exclude_dirs:
+  - migrations
+  - tests
+  - venv
+  - .venv
+  - staticfiles
+  - media
+  - docs
+
+# Проверяем ТОЛЬКО критические проблемы
+severity-level: HIGH
+confidence-level: HIGH

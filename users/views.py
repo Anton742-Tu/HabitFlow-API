@@ -51,7 +51,11 @@ class RegisterView(generics.CreateAPIView):
                 description="Пользователь создан",
                 examples={
                     "application/json": {
-                        "user": {"id": 1, "username": "ivan", "email": "ivan@example.com"},
+                        "user": {
+                            "id": 1,
+                            "username": "ivan",
+                            "email": "ivan@example.com",
+                        },
                         "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
                         "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
                     }
@@ -70,7 +74,9 @@ class RegisterView(generics.CreateAPIView):
 
         return Response(
             {
-                "user": UserRegisterSerializer(user, context=self.get_serializer_context()).data,
+                "user": UserRegisterSerializer(
+                    user, context=self.get_serializer_context()
+                ).data,
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
             },
