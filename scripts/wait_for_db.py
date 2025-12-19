@@ -40,7 +40,7 @@ def check_postgresql():
     if not check_port(host, port):
         print(f"ERROR: Cannot connect to {host}:{port}")
         print("Possible solutions:")
-        print(f"  1. Start PostgreSQL: docker-compose up -d postgres")
+        print("  1. Start PostgreSQL: docker-compose up -d postgres")
         print(f"  2. Check if {host} is reachable")
         print(f"  3. Verify port {port} is open")
         return False
@@ -58,7 +58,7 @@ def check_postgresql():
         try:
             conn = psycopg2.connect(**config)
             conn.close()
-            print(f"SUCCESS: PostgreSQL connection established")
+            print("SUCCESS: PostgreSQL connection established")
             return True
         except Exception as e:
             if attempt < 5:
