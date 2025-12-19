@@ -146,145 +146,52 @@ jobs:
   # Job для деплоя на сервер
   deploy:
     runs-on: ubuntu-latest
-    needs: test  # Запускать только после успешных тестов
-    if: github.ref == 'refs/heads/main'  # Только для main ветки
-
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.9.0
+    - name: Deploy to Yandex Cloud
+      uses: appleboy/ssh-action@v1.0.0
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-    - name: Add server to known hosts
-      run: |
-        mkdir -p ~/.ssh
-        chmod 700 ~/.ssh
-        ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-        chmod 600 ~/.ssh/known_hosts
-        echo "✅ Added server to known_hosts"
-
-    - name: Test SSH connection
-      run: |
-        echo "Testing SSH connection to ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}..."
-        ssh -o ConnectTimeout=10 -o BatchMode=yes ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "echo '✅ SSH connection successful!'; whoami; pwd"
-
-    - name: Prepare deployment script
-      run: |
-        cat > deploy.sh << 'EOF'
-        #!/bin/bash
-        set -e  # Exit on error
-        
-        echo "=== 🚀 Starting deployment at $(date) ==="
-        
-        # Переходим в директорию проекта
-        cd ${{ secrets.DEPLOY_DIR }}
-        echo "📁 Working directory: $(pwd)"
-        
-        # Обновляем код
-        echo "📥 Pulling latest code..."
-        git fetch origin
-        git reset --hard origin/main
-        
-        # Активируем виртуальное окружение
-        echo "🐍 Activating virtual environment..."
-        if [ -f "venv/bin/activate" ]; then
-            source venv/bin/activate
-        else
-            echo "❌ Virtual environment not found!"
-            exit 1
-        fi
-        
-        # Обновляем зависимости
-        echo "📦 Installing/updating dependencies..."
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        
-        # Применяем миграции
-        echo "🔄 Running migrations..."
-        python manage.py migrate --noinput
-        
-        # Собираем статику
-        echo "📁 Collecting static files..."
-        python manage.py collectstatic --noinput --clear
-        
-        # Применяем правки к статике (если нужно)
-        echo "🔧 Applying static file fixes..."
-        python manage.py compress --force
-        
-        # Проверяем конфигурацию Django
-        echo "🔍 Checking Django configuration..."
-        python manage.py check --deploy
-        
-        # Перезапускаем сервисы
-        echo "🔄 Restarting services..."
-        
-        # Gunicorn (если используется)
-        if systemctl list-unit-files | grep -q gunicorn; then
-            sudo systemctl restart gunicorn
-            echo "✅ Gunicorn restarted"
-        fi
-        
-        # Nginx
-        sudo systemctl reload nginx
-        echo "✅ Nginx reloaded"
-        
-        # Celery (если используется)
-        if systemctl list-unit-files | grep -q celery; then
-            sudo systemctl restart celery
-            sudo systemctl restart celerybeat
-            echo "✅ Celery services restarted"
-        fi
-        
-        # Очистка кэша
-        echo "🧹 Clearing cache..."
-        python manage.py clear_cache
-        redis-cli FLUSHALL 2>/dev/null || echo "⚠️ Redis not available for cache clearing"
-        
-        echo "=== ✅ Deployment completed successfully at $(date) ==="
-        
-        # Статус сервисов
-        echo "📊 Service status:"
-        sudo systemctl status gunicorn nginx --no-pager | grep -E "(Active|Status)" || true
-        EOF
-        
-        chmod +x deploy.sh
-
-    - name: Deploy to production server
-      run: |
-        echo "🚀 Deploying to ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}..."
-        scp -o StrictHostKeyChecking=no deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/tmp/deploy.sh
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "bash /tmp/deploy.sh"
-
-    - name: Verify deployment
-      run: |
-        echo "🔍 Verifying deployment..."
-        
-        # Проверяем статус сервисов
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          echo "=== Service Status ==="
-          sudo systemctl status gunicorn --no-pager | head -10 || echo "⚠️ Gunicorn service not found"
-          sudo systemctl status nginx --no-pager | head -10 || echo "⚠️ Nginx service not found"
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          set -e  # Выход при ошибке
+          echo "🚀 Начинаем деплой..."
           
-          echo "=== Application Health Check ==="
-          # Подожди немного перед проверкой
-          sleep 5
+          cd ${{ secrets.DEPLOY_DIR }}
           
-          # Проверяем доступность приложения
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/ || echo "curl failed")
-          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-            echo "✅ Application is responding (HTTP $HTTP_CODE)"
-          else
-            echo "⚠️ Application check returned HTTP $HTTP_CODE"
-          fi
-        EOF
-
-    - name: Cleanup
-      run: |
-        rm -f deploy.sh
-        echo "✅ Cleanup completed"
+          # Обновляем код
+          echo "📥 Тянем код..."
+          git pull origin main
+          
+          # Виртуальное окружение
+          echo "🐍 Активируем venv..."
+          source venv/bin/activate
+          
+          # Зависимости
+          echo "📦 Ставим зависимости..."
+          pip install -r requirements.txt
+          
+          # Миграции
+          echo "🔄 Мигрируем БД..."
+          python manage.py migrate --noinput
+          
+          # Статика
+          echo "📁 Собираем статику..."
+          python manage.py collectstatic --noinput
+          
+          # Перезапуск
+          echo "🔁 Перезапускаем сервисы..."
+          sudo systemctl restart gunicorn
+          sudo systemctl reload nginx
+          
+          echo "✅ Деплой завершен в $(date)"
+          
+          # Быстрая проверка
+          sleep 2
+          echo "Проверка:"
+          curl -s -o /dev/null -w "HTTP: %{http_code}\n" http://localhost || echo "Проверь вручную"
 
   # Job для уведомлений (опционально)
   notify:
