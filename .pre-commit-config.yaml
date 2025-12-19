@@ -30,7 +30,7 @@ repos:
   #     - id: flake8
   #       args: ["--max-line-length=88", "--extend-ignore=E203,W503,E501,F401,F403,F405"]
 
-  # Mypy - ЗАКОММЕНТИРУЕМ или удаляем  
+  # Mypy - ЗАКОММЕНТИРУЕМ или удаляем
   # - repo: https://github.com/pre-commit/mirrors-mypy
   #   rev: v1.8.0
   #   hooks:
@@ -38,12 +38,8 @@ repos:
   #       args: [--ignore-missing-imports]
 
   # Bandit - оставляем только для security
-  - repo: local
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7  # Последняя версия
     hooks:
-      - id: bandit-security-check
-        name: Security check (Bandit)
-        entry: poetry run bandit -c .bandit.yaml -r .
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [push]  # Только при push, не при коммите
+      - id: bandit
+        args: ["-c", ".bandit.yaml", "-r", "."]

@@ -1,15 +1,12 @@
 ﻿FROM python:3.12-slim
 
-# Или если конфиг в папке nginx/
-COPY nginx/nginx.conf /etc/nginx/nginx.conf
-
-
-
+# Устанавливаем системные зависимости ВКЛЮЧАЯ NGINX
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     libpq-dev \
     curl \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip setuptools
@@ -26,11 +23,21 @@ COPY . .
 COPY scripts/ /scripts/
 RUN chmod +x /scripts/*.py
 
-EXPOSE 8000
+# Копируем nginx конфиг
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
-CMD ["sh", "-c", "python /scripts/wait_for_db.py && python manage.py migrate && python /scripts/create_superuser.py && python manage.py runserver 0.0.0.0:8000"]
+# Собираем статические файлы Django
+RUN python manage.py collectstatic --noinput
 
-# Устанавливает переменную окружения, которая гарантирует, что вывод из python будет отправлен прямо в терминал без предварительной буферизации
+EXPOSE 80 8000
+
+# Устанавливает переменные окружения
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=config.settings
 ENV PYTHONPATH=/app
+
+# Запускаем Nginx и Gunicorn
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]
