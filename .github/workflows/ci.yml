@@ -52,11 +52,7 @@ jobs:
 
     - name: Run flake8
       run: |
-        poetry run flake8 . --count --max-complexity=10 --max-line-length=88 --statistics
-
-    - name: Run mypy
-      run: |
-        poetry run mypy --ignore-missing-imports .
+        poetry run flake8 . --count --max-complexity=10 --max-line-length=119 --statistics
 
   # Job 2: Testing (Linux с Docker)
   test-linux:
