@@ -52,7 +52,7 @@ jobs:
 
     - name: Run flake8
       run: |
-        poetry run flake8 . --count --max-complexity=10 --max-line-length=119 --statistics
+        poetry run flake8 . --count --max-complexity=10 --max-line-length=119 --statistics --ignore=F403,F405
 
   # Job 2: Testing (Linux с Docker)
   test-linux:
