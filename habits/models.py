@@ -168,14 +168,16 @@ class Habit(models.Model):
     def days_since_last_completion(self):
         """Возвращает количество дней с последнего выполнения привычки."""
         last_completion = (
-            self.completions.filter(is_completed=True)
-            .order_by("-completion_date")
-            .first()
+            self.completions.filter(is_completed=True).order_by("-completed_at").first()
         )
+
         if last_completion:
             today = timezone.now().date()
-            last_date = last_completion.completion_date
+            last_date = (
+                last_completion.completed_at.date()
+            )  # Используем date() для сравнения
             return (today - last_date).days
+
         return None  # Никогда не выполнялась
 
 
