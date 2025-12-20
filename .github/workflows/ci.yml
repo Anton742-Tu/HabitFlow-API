@@ -85,92 +85,94 @@ jobs:
           - 6379:6379
 
     env:
-      DATABASE_URL: postgres://postgres:postgres_password@localhost:5432/test_habitflow_db
+      DJANGO_SETTINGS_MODULE: config.settings_test
       POSTGRES_HOST: localhost
       POSTGRES_DB: test_habitflow_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres_password
-      POSTGRES_PORT: 5432
+      REDIS_URL: redis://localhost:6379/0
+      SECRET_KEY: django-insecure-test-key-${{ github.run_id }}
+      DEBUG: "True"
       TELEGRAM_BOT_TOKEN: "0000000000:TEST_TOKEN_FOR_CI"
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
+      - name: Check out code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
-    - name: Install Poetry
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry==${{ env.POETRY_VERSION }}
+      - name: Install Poetry
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry==${{ env.POETRY_VERSION }}
 
-    - name: Cache Poetry virtualenv
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pypoetry/virtualenvs
-        key: poetry-${{ hashFiles('poetry.lock') }}
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: poetry-${{ hashFiles('poetry.lock') }}
 
-    - name: Install dependencies
-      run: |
-        poetry config virtualenvs.create true
-        poetry config virtualenvs.in-project false
-        poetry install --no-interaction --with dev,ci
+      - name: Install dependencies
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project false
+          poetry install --no-interaction --with dev,ci
 
-    - name: Wait for PostgreSQL
-      run: |
-        echo "⏳ Waiting for PostgreSQL..."
-        for i in {1..30}; do
-          if pg_isready -h localhost -p 5432 -U postgres; then
-            echo "✅ PostgreSQL ready!"
-            break
-          fi
-          echo "Attempt $i/30..."
-          sleep 1
-        done
+      - name: Wait for PostgreSQL
+        run: |
+          echo "⏳ Waiting for PostgreSQL..."
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "✅ PostgreSQL ready!"
+              break
+            fi
+            echo "Attempt $i/30..."
+            sleep 1
+          done
 
-    - name: Wait for Redis
-      run: |
-        echo "⏳ Waiting for Redis..."
-        for i in {1..30}; do
-          if redis-cli -h localhost -p 6379 ping | grep -q PONG; then
-            echo "✅ Redis ready!"
-            break
-          fi
-          echo "Attempt $i/30..."
-          sleep 1
-        done
+      - name: Wait for Redis
+        run: |
+          echo "⏳ Waiting for Redis..."
+          for i in {1..30}; do
+            if redis-cli -h localhost -p 6379 ping | grep -q PONG; then
+              echo "✅ Redis ready!"
+              break
+            fi
+            echo "Attempt $i/30..."
+            sleep 1
+          done
 
-    - name: Run database setup
-      run: |
-        poetry run python manage.py check
-        poetry run python manage.py migrate --noinput
+      - name: Run database setup
+        run: |
+          poetry run python manage.py check
+          poetry run python manage.py migrate --noinput
 
-    - name: Run Django tests
-      run: |
-        poetry run python manage.py test --verbosity=2 --noinput
+      - name: Run Django tests
+        run: |
+          poetry run python manage.py test --verbosity=2 --noinput
 
-    - name: Run pytest with coverage
-      run: |
-        poetry run pytest --cov --cov-report=xml --cov-report=html --junitxml=test-results.xml
+      - name: Run pytest with coverage
+        run: |
+          poetry run pytest --cov --cov-report=xml --cov-report=html --junitxml=test-results.xml
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: |
-          test-results.xml
-          coverage.xml
-          htmlcov/
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            test-results.xml
+            coverage.xml
+            htmlcov/
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
 
   # Job 3: Build Docker images
   build-docker:
