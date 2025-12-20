@@ -137,24 +137,14 @@ class Habit(models.Model):
         return settings.HABIT_VALIDATION["ALLOWED_FREQUENCIES"].get(self.frequency, 1)
 
     def can_be_completed_today(self):
-        # Получаем frequency_days как число
-        if hasattr(self, "frequency_days"):
-            # Если это свойство, используем его
-            frequency = self.frequency_days
-        else:
-            # Конвертируем frequency в дни
-            frequency_map = {
-                "daily": 1,
-                "weekly": 7,
-                "monthly": 30,
-            }
-            frequency = frequency_map.get(self.frequency, 1)
+        """Можно ли выполнить привычку сегодня (проверка по периодичности)"""
+        if not self.completions.exists():
+            return True
 
-        # Получаем days_since_last как число
-        days_since_last = self.days_since_last_completion() or 0
+        last_completion = self.completions.latest("completed_at")
+        days_since_last = (timezone.now() - last_completion.completed_at).days
 
-        # Сравниваем числа
-        return int(days_since_last) >= int(frequency)
+        return days_since_last >= self.frequency_days
 
     @property
     def full_description(self):
@@ -168,6 +158,19 @@ class Habit(models.Model):
                 f"Я буду {getattr(self, 'action', 'действие')} в {getattr(self, 'time', 'время')}/n"
                 f"в {getattr(self, 'place', 'место')}"
             )
+
+    def days_since_last_completion(self):
+        """Возвращает количество дней с последнего выполнения привычки."""
+        last_completion = (
+            self.completions.filter(is_completed=True)
+            .order_by("-completion_date")
+            .first()
+        )
+        if last_completion:
+            today = timezone.now().date()
+            last_date = last_completion.completion_date
+            return (today - last_date).days
+        return None  # Никогда не выполнялась
 
 
 class HabitCompletion(models.Model):
