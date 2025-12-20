@@ -166,6 +166,7 @@ def _answer_callback_query(callback_query_id, text):
                 "text": text,
                 "show_alert": False,
             },
+            timeout=10,
         )
 
         if response.status_code != 200:

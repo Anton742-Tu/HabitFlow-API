@@ -157,8 +157,11 @@ def main():
 
     # Сохраняем отчет в файл
     import json
+    import os
+    import tempfile
 
-    with open("/tmp/health_check_report.json", "w") as f:
+    report_path = os.path.join(tempfile.gettempdir(), "health_check_report.json")
+    with open(report_path, "w") as f:
         json.dump(report, f, indent=2, default=str)
 
     # Возвращаем код выхода

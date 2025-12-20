@@ -24,11 +24,11 @@ repos:
         args: ["--profile", "black"]
 
   # Flake8 - ЗАКОММЕНТИРУЕМ или удаляем
-  # - repo: https://github.com/pycqa/flake8
-  #   rev: 7.0.0
-  #   hooks:
-  #     - id: flake8
-  #       args: ["--max-line-length=88", "--extend-ignore=E203,W503,E501,F401,F403,F405"]
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ["--max-line-length=119", "--extend-ignore=E203,W503,E501,E402,F401,F403,F405"]
 
   # Mypy - ЗАКОММЕНТИРУЕМ или удаляем
   # - repo: https://github.com/pre-commit/mirrors-mypy
@@ -42,4 +42,4 @@ repos:
     rev: 1.7.7  # Последняя версия
     hooks:
       - id: bandit
-        args: ["-c", ".bandit.yaml", "-r", "."]
+        args: ["-c", ".bandit.yaml", "-r", ".", "B108,B113"]
