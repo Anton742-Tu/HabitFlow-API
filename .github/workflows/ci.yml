@@ -261,7 +261,7 @@ jobs:
 
     steps:
     - name: Send Telegram notification
-      if: secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
+      if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
       run: |
         DEPLOY_STATUS="${{ needs.deploy.result || 'skipped' }}"
 
