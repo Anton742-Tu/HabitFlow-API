@@ -63,6 +63,18 @@ TEMPLATES = [
     },
 ]
 
+HABIT_VALIDATION = {
+    "ALLOWED_FREQUENCIES": {
+        "daily": "Ежедневно",
+        "weekly": "Еженедельно",
+        "monthly": "Ежемесячно",
+    },
+    "MIN_DURATION": 1,  # секунды
+    "MAX_DURATION": 3600,  # секунды (1 час)
+    "MIN_COMPLETION_TIME": 0,  # секунды
+    "MAX_COMPLETION_TIME": 3600,  # секунды (1 час)
+}
+
 WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
