@@ -263,21 +263,13 @@ jobs:
     steps:
     - name: Send Telegram notification
       if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
-      env:
-        DEPLOY_STATUS: ${{ needs.deploy.result || 'skipped' }}
-      run: |
-        if [ "$DEPLOY_STATUS" = "success" ]; then
-          EMOJI="✅"
-          MESSAGE="Deployment successful!"
-        elif [ "$DEPLOY_STATUS" = "failure" ]; then
-          EMOJI="❌"
-          MESSAGE="Deployment failed!"
-        else
-          EMOJI="ℹ️"
-          MESSAGE="Deployment not performed"
-        fi
-
-        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="$EMOJI $MESSAGE%0A%0A🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-          -d parse_mode="HTML"
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        message: |
+          🚀 CI/CD Pipeline ${{ github.workflow }}
+          Repository: ${{ github.repository }}
+          Status: ${{ job.status }}
+          Commit: ${{ github.sha }}
+          Link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
