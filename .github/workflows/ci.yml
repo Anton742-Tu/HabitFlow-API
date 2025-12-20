@@ -2,9 +2,9 @@ name: Django CI/CD with Poetry
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, feature/deploe_setup ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, feature/deploe_setup ]
   workflow_dispatch:
 
 env:
