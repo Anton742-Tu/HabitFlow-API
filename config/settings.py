@@ -188,7 +188,7 @@ DATABASES = {
         "NAME": os.getenv("POSTGRES_DB", "habitflow_db"),
         "USER": os.getenv("POSTGRES_USER", "postgres"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
-        "HOST": os.getenv("POSTGRES_HOST", "db"),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
         "OPTIONS": {
             "connect_timeout": 10,
