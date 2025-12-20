@@ -85,10 +85,12 @@ jobs:
           - 6379:6379
 
     env:
-      DATABASE_URL: postgres://postgres:postgres_password@localhost:5432/test_habitflow_db  # ← ИСПРАВЛЕНО
-      REDIS_URL: redis://localhost:6379/0
-      SECRET_KEY: django-insecure-test-key-${{ github.run_id }}
-      DEBUG: "True"
+      DATABASE_URL: postgres://postgres:postgres_password@localhost:5432/test_habitflow_db
+      POSTGRES_HOST: localhost
+      POSTGRES_DB: test_habitflow_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_PORT: 5432
       TELEGRAM_BOT_TOKEN: "0000000000:TEST_TOKEN_FOR_CI"
 
     steps:
