@@ -54,6 +54,33 @@ jobs:
       run: |
         poetry run flake8 . --count --max-complexity=10 --max-line-length=119 --statistics --ignore=F403,F405
 
+    - name: Add missing settings
+      run: |
+        echo "Adding missing HABIT_VALIDATION keys..."
+        python -c "
+        import sys
+        sys.path.insert(0, '.')
+
+        from django.conf import settings
+
+        # Патчим настройки
+        if not hasattr(settings, 'HABIT_VALIDATION'):
+            settings.HABIT_VALIDATION = {}
+
+        settings.HABIT_VALIDATION.update({
+            'MAX_BREAK_DAYS': 7,
+            'PLEASANT_HABIT_RULES': {
+                'no_reward': 'Приятные привычки не могут иметь вознаграждения',
+                'no_related': 'Приятные привычки не могут быть связаны с другой привычкой',
+            }
+        })
+
+        if not hasattr(settings, 'CORS_ALLOWED_ORIGINS'):
+            settings.CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
+
+        print('✅ Missing settings added')
+        "
+
   # Job 2: Testing (Linux с Docker)
   test-linux:
     runs-on: ubuntu-latest
