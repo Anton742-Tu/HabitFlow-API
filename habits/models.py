@@ -159,19 +159,6 @@ class Habit(models.Model):
                 f"в {getattr(self, 'place', 'место')}"
             )
 
-    def days_since_last_completion(self):
-        """Возвращает количество дней с последнего выполнения привычки."""
-        last_completion = (
-            self.completions.filter(is_completed=True)
-            .order_by("-completion_date")
-            .first()
-        )
-        if last_completion:
-            today = timezone.now().date()
-            last_date = last_completion.completion_date
-            return (today - last_date).days
-        return None  # Никогда не выполнялась
-
 
 class HabitCompletion(models.Model):
     """Модель для отслеживания выполнения привычек"""
