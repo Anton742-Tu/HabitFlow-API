@@ -10,6 +10,7 @@ on:
 env:
   POETRY_VERSION: "1.7.1"
   PYTHON_VERSION: "3.12"
+  POSTGRES_PASSWORD: "postgres_password"  # ← ДОБАВЬТЕ ЭТО
 
 jobs:
   # Job 1: Code Quality Checks (для Windows)
@@ -68,7 +69,7 @@ jobs:
         env:
           POSTGRES_DB: test_habitflow_db
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
+          POSTGRES_PASSWORD: postgres_password  # ← ИСПРАВЛЕНО
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -88,7 +89,7 @@ jobs:
           - 6379:6379
 
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_habitflow_db
+      DATABASE_URL: postgres://postgres:postgres_password@localhost:5432/test_habitflow_db  # ← ИСПРАВЛЕНО
       REDIS_URL: redis://localhost:6379/0
       SECRET_KEY: django-insecure-test-key-${{ github.run_id }}
       DEBUG: "True"
