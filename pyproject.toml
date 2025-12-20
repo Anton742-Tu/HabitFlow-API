@@ -75,6 +75,7 @@ types-redis = "^4.6"
 sphinx = "^7.2"
 sphinx-rtd-theme = "^2.0"
 flake8 = "^7.3.0"
+drf-spectacular = "^0.29.0"
 
 [tool.poetry.group.lint.dependencies]
 # Линтеры для CI
