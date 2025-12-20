@@ -73,7 +73,22 @@ HABIT_VALIDATION = {
     "MAX_DURATION_SECONDS": 3600,
     "MIN_COMPLETION_TIME_SECONDS": 0,
     "MAX_COMPLETION_TIME_SECONDS": 3600,
+    "MAX_BREAK_DAYS": 7,
+    "PLEASANT_HABIT_RULES": {
+        "no_reward": "Приятные привычки не могут иметь вознаграждения",
+        "no_related": "Приятные привычки не могут быть связаны с другой привычкой",
+    },
 }
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
 WSGI_APPLICATION = "config.wsgi.application"
 
