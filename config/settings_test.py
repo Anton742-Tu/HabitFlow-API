@@ -69,10 +69,10 @@ HABIT_VALIDATION = {
         "weekly": "Еженедельно",
         "monthly": "Ежемесячно",
     },
-    "MIN_DURATION": 1,  # секунды
-    "MAX_DURATION": 3600,  # секунды (1 час)
-    "MIN_COMPLETION_TIME": 0,  # секунды
-    "MAX_COMPLETION_TIME": 3600,  # секунды (1 час)
+    "MIN_DURATION_SECONDS": 1,
+    "MAX_DURATION_SECONDS": 3600,
+    "MIN_COMPLETION_TIME_SECONDS": 0,
+    "MAX_COMPLETION_TIME_SECONDS": 3600,
 }
 
 WSGI_APPLICATION = "config.wsgi.application"
