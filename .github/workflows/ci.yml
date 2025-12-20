@@ -263,9 +263,9 @@ jobs:
     steps:
     - name: Send Telegram notification
       if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
+      env:
+        DEPLOY_STATUS: ${{ needs.deploy.result || 'skipped' }}
       run: |
-        DEPLOY_STATUS="${{ needs.deploy.result || 'skipped' }}"
-
         if [ "$DEPLOY_STATUS" = "success" ]; then
           EMOJI="✅"
           MESSAGE="Deployment successful!"
