@@ -48,7 +48,7 @@
       PYTHONPATH: /app
       DEBUG: "True"  # временно включите для отладки
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-key}
-      POSTGRES_HOST: db
+      POSTGRES_HOST: localhost
       POSTGRES_DB: habitflow_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}

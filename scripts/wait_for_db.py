@@ -17,7 +17,7 @@ def check_port(host: str, port: int, timeout: int = 5) -> bool:
         result = sock.connect_ex((host, port))
         sock.close()
         return result == 0
-    except:
+    except socket.error:
         return False
 
 
@@ -25,7 +25,7 @@ def check_postgresql():
     """Основная проверка PostgreSQL"""
     try:
         import psycopg2
-        from psycopg2 import OperationalError
+    #        from psycopg2 import OperationalError
     except ImportError:
         print("ERROR: psycopg2 not installed. Run: poetry install")
         return False
@@ -60,7 +60,7 @@ def check_postgresql():
             conn.close()
             print("SUCCESS: PostgreSQL connection established")
             return True
-        except Exception as e:
+        except psycopg2.OperationalError as e:
             if attempt < 5:
                 print(f"  Attempt {attempt}/5: {e}")
                 time.sleep(2)

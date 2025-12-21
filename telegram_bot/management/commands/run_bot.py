@@ -166,6 +166,7 @@ def _answer_callback_query(callback_query_id, text):
                 "text": text,
                 "show_alert": False,
             },
+            timeout=10,
         )
 
         if response.status_code != 200:
@@ -231,92 +232,116 @@ def _handle_settings_command(chat_id, bot_service):
         logger.error(f"Ошибка в настройках: {e}")
 
 
-def _handle_message(chat_id, text, bot_service, message):
-    """Обработка текстового сообщения"""
+def _handle_start_command(chat_id, bot_service, message):
+    """Обработка команды /start"""
+    response_text = (
+        "👋 <b>Привет! Я бот для трекера привычек HabitFlow!</b>\n\n"
+        "📋 <b>Доступные команды:</b>\n"
+        "/start - Начало работы\n"
+        "/connect - Подключить аккаунт\n"
+        "/help - Помощь\n\n"
+        "🔗 <b>Для подключения:</b>\n"
+        "1. Откройте веб-приложение HabitFlow\n"
+        "2. В профиле нажмите 'Подключить Telegram'\n"
+        "3. Скопируйте код\n"
+        "4. Отправьте: <code>/connect ВАШ_КОД</code>\n\n"
+        "После подключения вы будете получать напоминания о привычках!"
+    )
+    bot_service.send_message(chat_id, response_text)
 
-    if text == "/start":
-        response_text = (
-            "👋 <b>Привет! Я бот для трекера привычек HabitFlow!</b>\n\n"
-            "📋 <b>Доступные команды:</b>\n"
-            "/start - Начало работы\n"
-            "/connect - Подключить аккаунт\n"
-            "/help - Помощь\n\n"
-            "🔗 <b>Для подключения:</b>\n"
-            "1. Откройте веб-приложение HabitFlow\n"
-            "2. В профиле нажмите 'Подключить Telegram'\n"
-            "3. Скопируйте код\n"
-            "4. Отправьте: <code>/connect ВАШ_КОД</code>\n\n"
-            "После подключения вы будете получать напоминания о привычках!"
-        )
 
-        bot_service.send_message(chat_id, response_text)
+def _handle_help_command(chat_id, bot_service, message):
+    """Обработка команды /help"""
+    response_text = (
+        "ℹ️ <b>Справка по командам:</b>\n\n"
+        "/start - Начало работы с ботом\n"
+        "/connect КОД - Подключить ваш аккаунт HabitFlow\n"
+        "/status - Проверить статус подключения\n"
+        "/stats - Ваша статистика\n"
+        "/settings - Настройки уведомлений\n"
+        "/help - Эта справка\n\n"
+        "🔔 <b>После подключения:</b>\n"
+        "• Вы будете получать напоминания о привычках\n"
+        "• Ежедневные отчеты о выполнении\n"
+        "• Уведомления о вашем прогрессе"
+    )
+    bot_service.send_message(chat_id, response_text)
 
-    elif text == "/help":
-        response_text = (
-            "ℹ️ <b>Справка по командам:</b>\n\n"
-            "/start - Начало работы с ботом\n"
-            "/connect КОД - Подключить ваш аккаунт HabitFlow\n"
-            "/status - Проверить статус подключения\n"
-            "/stats - Ваша статистика\n"
-            "/settings - Настройки уведомлений\n"
-            "/help - Эта справка\n\n"
-            "🔔 <b>После подключения:</b>\n"
-            "• Вы будете получать напоминания о привычках\n"
-            "• Ежедневные отчеты о выполнении\n"
-            "• Уведомления о вашем прогрессе"
-        )
 
-        bot_service.send_message(chat_id, response_text)
-
-    elif text.startswith("/connect"):
-        parts = text.split()
-        if len(parts) == 2:
-            connection_code = parts[1]
-            _handle_connect_command(chat_id, connection_code, bot_service, message)
-        else:
-            bot_service.send_message(
-                chat_id,
-                "❌ <b>Неверный формат команды</b>\n\n"
-                "Используйте: <code>/connect ВАШ_КОД</code>\n\n"
-                "Чтобы получить код:\n"
-                "1. Откройте HabitFlow в браузере\n"
-                "2. Перейдите в профиль\n"
-                "3. Нажмите 'Подключить Telegram'\n"
-                "4. Скопируйте код",
+def _handle_status_command(chat_id, bot_service, message):
+    """Обработка команды /status"""
+    try:
+        telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
+        if telegram_user:
+            response_text = (
+                f"✅ <b>Аккаунт подключен!</b>\n\n"
+                f"👤 <b>Пользователь:</b> {telegram_user.user.username}\n"
+                f"📧 <b>Email:</b> {telegram_user.user.email}\n"
+                f"🔗 <b>Подключен:</b> {telegram_user.created_at.strftime('%d.%m.%Y %H:%M')}\n"
+                f"🔔 <b>Уведомления:</b> {'Включены ✅' if telegram_user.is_active else 'Выключены ❌'}\n\n"
+                f"Используйте /stats для статистики"
             )
+        else:
+            response_text = (
+                "❌ <b>Аккаунт не подключен</b>\n\n"
+                "Используйте /connect КОД для подключения вашего аккаунт HabitFlow"
+            )
+        bot_service.send_message(chat_id, response_text)
+    except Exception as e:
+        logger.error(f"Ошибка статуса: {e}")
 
-    elif text == "/settings":
-        _handle_settings_command(chat_id, bot_service)
 
-    elif text == "/stats" or text == "/statistics":
-        _handle_stats_command(chat_id, bot_service)
-
-    elif text == "/status":
-        try:
-            telegram_user = TelegramUser.objects.filter(chat_id=chat_id).first()
-            if telegram_user:
-                response_text = (
-                    f"✅ <b>Аккаунт подключен!</b>\n\n"
-                    f"👤 <b>Пользователь:</b> {telegram_user.user.username}\n"
-                    f"📧 <b>Email:</b> {telegram_user.user.email}\n"
-                    f"🔗 <b>Подключен:</b> {telegram_user.created_at.strftime('%d.%m.%Y %H:%M')}\n"
-                    f"🔔 <b>Уведомления:</b> {'Включены ✅' if telegram_user.is_active else 'Выключены ❌'}\n\n"
-                    f"Используйте /stats для статистики"
-                )
-            else:
-                response_text = (
-                    "❌ <b>Аккаунт не подключен</b>\n\n"
-                    "Используйте /connect КОД для подключения вашего аккаунта HabitFlow"
-                )
-            bot_service.send_message(chat_id, response_text)
-        except Exception as e:
-            logger.error(f"Ошибка статуса: {e}")
-
+def _handle_connect_message(chat_id, text, bot_service, message):
+    """Обработка команды /connect"""
+    parts = text.split()
+    if len(parts) == 2:
+        connection_code = parts[1]
+        _handle_connect_command(chat_id, connection_code, bot_service, message)
     else:
         bot_service.send_message(
             chat_id,
-            "🤔 <b>Не понял команду</b>\n\nИспользуйте /help для списка доступных команд",
+            "❌ <b>Неверный формат команды</b>\n\n"
+            "Используйте: <code>/connect ВАШ_КОД</code>\n\n"
+            "Чтобы получить код:\n"
+            "1. Откройте HabitFlow в браузере\n"
+            "2. Перейдите в профиль\n"
+            "3. Нажмите 'Подключить Telegram'\n"
+            "4. Скопируйте код",
         )
+
+
+def _handle_unknown_command(chat_id, bot_service):
+    """Обработка неизвестной команды"""
+    bot_service.send_message(
+        chat_id,
+        "🤔 <b>Не понял команду</b>\n\nИспользуйте /help для списка доступных команд",
+    )
+
+
+def _handle_message(chat_id, text, bot_service, message):  # noqa: C901
+    """Обработка текстового сообщения"""
+
+    # Словарь обработчиков команд
+    command_handlers = {
+        "/start": _handle_start_command,
+        "/help": _handle_help_command,
+        "/settings": _handle_settings_command,
+        "/stats": _handle_stats_command,
+        "/statistics": _handle_stats_command,
+        "/status": _handle_status_command,
+    }
+
+    # Проверка на /connect команду
+    if text.startswith("/connect"):
+        _handle_connect_message(chat_id, text, bot_service, message)
+        return
+
+    # Поиск обработчика для обычных команд
+    handler = command_handlers.get(text.split()[0] if text else "")
+    if handler:
+        handler(chat_id, bot_service, message)
+    else:
+        _handle_unknown_command(chat_id, bot_service)
 
 
 def _process_update(update, bot_service):
@@ -346,7 +371,43 @@ def _process_update(update, bot_service):
 class Command(BaseCommand):
     help = "Запуск Telegram бота в режиме polling"
 
-    def handle(self, *args, **options):
+    def _poll_updates(self, bot_service, offset):
+        """Основной цикл опроса обновлений"""
+        while True:
+            try:
+                offset = self._fetch_and_process_updates(bot_service, offset)
+                time.sleep(1)
+            except KeyboardInterrupt:
+                raise
+            except Exception as e:
+                logger.error(f"Ошибка в основном цикле: {e}")
+                time.sleep(5)
+
+    def _fetch_and_process_updates(self, bot_service, offset):
+        """Получение и обработка обновлений"""
+        try:
+            response = requests.get(
+                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getUpdates",
+                params={
+                    "offset": offset,
+                    "timeout": 10,
+                    "allowed_updates": json.dumps(["message", "callback_query"]),
+                },
+                timeout=15,
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("ok"):
+                    for update in data["result"]:
+                        offset = update["update_id"] + 1
+                        _process_update(update, bot_service)
+
+            return offset
+        except requests.exceptions.Timeout:
+            return offset
+
+    def handle(self, *args, **options):  # noqa: C901
         if not settings.TELEGRAM_BOT_TOKEN:
             self.stdout.write(
                 self.style.ERROR(
@@ -365,39 +426,7 @@ class Command(BaseCommand):
         offset = 0
 
         try:
-            while True:
-                try:
-                    response = requests.get(
-                        f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getUpdates",
-                        params={
-                            "offset": offset,
-                            "timeout": 10,
-                            "allowed_updates": json.dumps(
-                                ["message", "callback_query"]
-                            ),
-                        },
-                        timeout=15,
-                    )
-
-                    if response.status_code == 200:
-                        data = response.json()
-                        if data.get("ok"):
-                            updates = data["result"]
-
-                            for update in updates:
-                                offset = update["update_id"] + 1
-                                _process_update(update, bot_service)
-
-                    time.sleep(1)
-
-                except requests.exceptions.Timeout:
-                    continue
-                except KeyboardInterrupt:
-                    self.stdout.write(self.style.WARNING("\n👋 Останавливаем бота..."))
-                    break
-                except Exception as e:
-                    logger.error(f"Ошибка в основном цикле: {e}")
-                    time.sleep(5)
-
-        except KeyboardInterrupt:
+            self._poll_updates(bot_service, offset)
             self.stdout.write(self.style.SUCCESS("\n✅ Бот остановлен"))
+        except KeyboardInterrupt:
+            self.stdout.write(self.style.WARNING("\n👋 Останавливаем бота..."))

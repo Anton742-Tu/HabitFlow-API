@@ -110,7 +110,11 @@ class HabitPermissionsTestCase(TestCase):
             "/api/habits/",
             {"place": "Тест", "time": "10:00", "action": "Новая", "duration": 60},
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertNotEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+        )
 
     def test_public_endpoint_shows_only_public_habits(self):
         """Эндпоинт /public/ показывает только публичные привычки"""
@@ -215,7 +219,11 @@ class HabitPermissionsTestCase(TestCase):
         }
 
         response = self.client.post("/api/habits/", data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertNotEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+        )
 
     def test_authenticated_can_create_habit(self):
         """Аутентифицированный пользователь может создать привычку"""

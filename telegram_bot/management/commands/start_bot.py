@@ -27,6 +27,7 @@ class Command(BaseCommand):
             response = requests.post(
                 f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/setWebhook",
                 json={"url": webhook_url},
+                timeout=10,
             )
 
             if response.status_code == 200:
@@ -36,7 +37,8 @@ class Command(BaseCommand):
 
                 # Получаем информацию о боте
                 bot_info = requests.get(
-                    f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getMe"
+                    f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getMe",
+                    timeout=10,
                 ).json()
 
                 if bot_info["ok"]:

@@ -4,16 +4,14 @@ Create test data for CI/CD pipeline
 
 import os
 import sys
+from datetime import datetime, timedelta
 
-import django
-
-# Настройка Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-django.setup()
+import django
 
-from datetime import datetime, timedelta
+django.setup()
 
 from django.contrib.auth import get_user_model
 
