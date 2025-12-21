@@ -244,14 +244,19 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Convert repository name to lowercase
+      run: |
+        echo "LOWERCASE_REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        echo "Using repository name: $LOWERCASE_REPO"
+
     - name: Build and push Django image
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}:latest
-          ghcr.io/${{ github.repository }}:${{ github.sha }}
+          ghcr.io/${{ env.LOWERCASE_REPO }}:latest
+          ghcr.io/${{ env.LOWERCASE_REPO }}:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -261,7 +266,7 @@ jobs:
         context: ./nginx
         file: ./nginx/Dockerfile
         push: true
-        tags: ghcr.io/${{ github.repository }}-nginx:latest
+        tags: ghcr.io/${{ env.LOWERCASE_REPO }}-nginx:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
