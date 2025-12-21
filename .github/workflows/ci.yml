@@ -289,7 +289,6 @@ jobs:
         script: |
           set -e
           echo "🚀 Deploying HabitFlow API..."
-
           cd ${{ secrets.DEPLOY_DIR }}
 
           # Pull latest images
@@ -301,12 +300,17 @@ jobs:
           # Collect static
           docker-compose exec -T web python manage.py collectstatic --noinput
 
-          # Restart services
+          # ★★★★ Остановить конфликтующий контейнер ★★★★
+          echo "Checking for conflicting containers..."
+          docker stop habitflow-app 2>/dev/null || echo "Container 'habitflow-app' not found or already stopped"
+          docker rm habitflow-app 2>/dev/null || echo "Container 'habitflow-app' not found or already removed"
+
+          # Теперь безопасно перезапустить
           docker-compose down
           docker-compose up -d
 
           # Health check
-          sleep 5
+          sleep 10  # Увеличил время для запуска
           curl -f http://localhost:8000/api/health/ || exit 1
 
           echo "✅ Deployment successful!"
