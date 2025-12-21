@@ -289,29 +289,70 @@ jobs:
         script: |
           set -e
           echo "🚀 Deploying HabitFlow API..."
-          cd ${{ secrets.DEPLOY_DIR }}
+          cd "${{ secrets.DEPLOY_DIR }}"
 
-          # Pull latest images
+          # ★★★★ ПРИНУДИТЕЛЬНАЯ ОСТАНОВКА ★★★★
+          echo "Force stopping any conflicting containers..."
+          docker stop habitflow-app 2>/dev/null && echo "Stopped habitflow-app" || true
+          docker rm -f habitflow-app 2>/dev/null && echo "Removed habitflow-app" || true
+
+          # Остановить всё что связано с проектом
+          docker-compose down 2>/dev/null || true
+
+          # Проверить что порт 8000 свободен
+          echo "Checking port 8000..."
+          if ss -tuln | grep :8000; then
+            echo "⚠️ Port 8000 is still in use! Killing processes..."
+            sudo fuser -k 8000/tcp 2>/dev/null || true
+            sleep 2
+          fi
+
+          # Запустить проект
+          echo "Building and starting containers..."
           docker-compose up -d --build
 
+          # Дать время на запуск (увеличиваем)
+          echo "Waiting for containers to start..."
+          sleep 30
+
+          # Проверить статус контейнеров
+          echo "Container status:"
+          docker-compose ps
+
+          # Проверить логи если что-то не так
+          echo "Web container logs (last 20 lines):"
+          docker-compose logs web --tail=20
+
           # Run migrations
+          echo "Running migrations..."
           docker-compose exec -T web python manage.py migrate --noinput
 
-          # Collect static
+          # Collect static (уже сделано в Dockerfile, но на всякий случай)
+          echo "Collecting static files..."
           docker-compose exec -T web python manage.py collectstatic --noinput
 
-          # ★★★★ Остановить конфликтующий контейнер ★★★★
-          echo "Checking for conflicting containers..."
-          docker stop habitflow-app 2>/dev/null || echo "Container 'habitflow-app' not found or already stopped"
-          docker rm habitflow-app 2>/dev/null || echo "Container 'habitflow-app' not found or already removed"
+          # Health check с повторами
+          echo "Performing health check..."
+          for i in {1..5}; do
+            echo "Attempt $i/5..."
+            if curl -f http://localhost:8000/api/health/; then
+              echo "✅ Health check passed!"
+              break
+            fi
+            sleep 10
+          done
 
-          # Теперь безопасно перезапустить
-          docker-compose down
-          docker-compose up -d
-
-          # Health check
-          sleep 10  # Увеличил время для запуска
-          curl -f http://localhost:8000/api/health/ || exit 1
+          # Если все попытки провалились
+          if [ $? -ne 0 ]; then
+            echo "❌ Health check failed!"
+            echo "=== Debug info ==="
+            docker-compose ps -a
+            echo "=== Web logs ==="
+            docker-compose logs web
+            echo "=== Nginx logs ==="
+            docker-compose logs nginx
+            exit 1
+          fi
 
           echo "✅ Deployment successful!"
 
