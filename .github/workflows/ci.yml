@@ -292,7 +292,7 @@ jobs:
           cd ${{ secrets.DEPLOY_DIR }}
 
           # Pull latest images
-          docker-compose -d --build
+          docker-compose up -d --build
 
           # Run migrations
           docker-compose exec -T web python manage.py migrate --noinput
