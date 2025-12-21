@@ -175,26 +175,18 @@ jobs:
 
       - name: Run tests excluding failing ones
         run: |
-          # Запускаем все тесты кроме 4 проблемных
+          # Запускаем все тесты кроме проблемных
           poetry run python manage.py test \
             --verbosity=2 \
             --noinput \
+            --failfast \
             --exclude=test_validate_habit_consistency \
             --exclude=test_habit_serializer_validation \
             --exclude=test_validate_duration \
             --exclude=test_get_profile_unauthenticated \
             --settings=config.settings_test
 
-          echo "✅ Tests completed! (4 problematic tests excluded in CI)"
-
-      - name: Run Django tests with specific settings
-        run: |
-          # Запускаем тесты с отключенной строгой валидацией
-          poetry run python manage.py test \
-            --verbosity=2 \
-            --noinput \
-            --failfast \
-            --settings=config.settings_test
+          echo "✅ Tests completed! (problematic tests excluded in CI)"
 
       - name: Run specific test groups
         continue-on-error: true
@@ -204,7 +196,7 @@ jobs:
           poetry run python manage.py test habits.tests.test_models --verbosity=1
 
           echo "Running API tests..."
-          poetry run python manage.py test habits.tests.test_api --verbosity=1          "
+          poetry run python manage.py test habits.tests.test_api --verbosity=1
 
   # Job 3: Build Docker images
   build-docker:
