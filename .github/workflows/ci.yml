@@ -291,47 +291,39 @@ jobs:
           echo "🚀 Deploying HabitFlow API..."
           cd "${{ secrets.DEPLOY_DIR }}"
 
-          # ★★★★ ПРИНУДИТЕЛЬНАЯ ОСТАНОВКА ★★★★
-          echo "Force stopping any conflicting containers..."
+          # Принудительная остановка
           docker stop habitflow-app 2>/dev/null && echo "Stopped habitflow-app" || true
           docker rm -f habitflow-app 2>/dev/null && echo "Removed habitflow-app" || true
-
-          # Остановить всё что связано с проектом
           docker-compose down 2>/dev/null || true
 
-          # Проверить что порт 8000 свободен
+          # Проверка порта 8000
           echo "Checking port 8000..."
           if ss -tuln | grep :8000; then
-            echo "⚠️ Port 8000 is still in use! Killing processes..."
+            echo "⚠️ Port 8000 is still in use!"
             sudo fuser -k 8000/tcp 2>/dev/null || true
             sleep 2
           fi
 
-          # Запустить проект
+          # Запуск
           echo "Building and starting containers..."
           docker-compose up -d --build
 
-          # Дать время на запуск (увеличиваем)
+          # Ожидание
           echo "Waiting for containers to start..."
           sleep 30
 
-          # Проверить статус контейнеров
-          echo "Container status:"
-          docker-compose ps
-
-          # Проверить логи если что-то не так
+          # ★★★★ Правильный синтаксис logs ★★★★
           echo "Web container logs (last 20 lines):"
-          docker-compose logs web --tail=20
+          docker-compose logs --tail=20 web
 
-          # Run migrations
+          # Миграции и статика
           echo "Running migrations..."
           docker-compose exec -T web python manage.py migrate --noinput
 
-          # Collect static (уже сделано в Dockerfile, но на всякий случай)
           echo "Collecting static files..."
           docker-compose exec -T web python manage.py collectstatic --noinput
 
-          # Health check с повторами
+          # Health check
           echo "Performing health check..."
           for i in {1..5}; do
             echo "Attempt $i/5..."
@@ -342,7 +334,7 @@ jobs:
             sleep 10
           done
 
-          # Если все попытки провалились
+          # Проверка
           if [ $? -ne 0 ]; then
             echo "❌ Health check failed!"
             echo "=== Debug info ==="
