@@ -41,6 +41,7 @@ pillow = "^12.0"
 
 # Windows-specific (можно удалить если не нужно)
 django-timezone-field = {version = "^7.2", optional = true}
+setuptools = "==70.0.0"
 
 [tool.poetry.group.dev.dependencies]
 # Testing
