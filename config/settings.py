@@ -130,11 +130,11 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    #    "drf_yasg",
+    "drf_yasg",
     "django_filters",
     "corsheaders",
-    #    "django_celery_beat",
-    #    "django_celery_results",
+    "django_celery_beat",
+    "django_celery_results",
     # Local apps
     "habits",
     "users",
@@ -298,6 +298,8 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 минут
 
 # CORS
 CORS_ALLOWED_ORIGINS = (
