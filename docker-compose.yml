@@ -100,7 +100,7 @@
 
   celery_beat:
     build: .
-    command: celery -A config beat --loglevel=info
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
     env_file:
