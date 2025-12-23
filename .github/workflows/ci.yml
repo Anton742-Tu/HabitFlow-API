@@ -291,6 +291,28 @@ jobs:
           echo "🚀 Deploying HabitFlow API..."
           cd "${{ secrets.DEPLOY_DIR }}"
 
+          # Остановить старые контейнеры
+          docker-compose down 2>/dev/null || true
+
+          # Запустить ВСЕ сервисы включая Celery
+          echo "Starting all services (Django, PostgreSQL, Redis, Nginx, Celery)..."
+          docker-compose up -d --build
+
+          # Ждать запуска
+          sleep 30
+
+          # Выполнить миграции для django-celery-beat
+          echo "Running Celery beat migrations..."
+          docker-compose exec -T web python manage.py migrate django_celery_beat
+
+          # Проверить что Celery worker запустился
+          echo "Checking Celery worker..."
+          docker-compose exec -T celery_worker celery -A config status 2>/dev/null || echo "Celery status check failed, but continuing..."
+
+          # Остальные команды (миграции Django, сбор статики, health check)
+          docker-compose exec -T web python manage.py migrate --noinput
+          docker-compose exec -T web python manage.py collectstatic --noinput
+
           # Принудительная остановка
           docker stop habitflow-app 2>/dev/null && echo "Stopped habitflow-app" || true
           docker rm -f habitflow-app 2>/dev/null && echo "Removed habitflow-app" || true

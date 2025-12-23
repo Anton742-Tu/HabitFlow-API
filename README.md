@@ -2,9 +2,9 @@
 ## 🏆 **Статус проекта**
 
 [![Django CI/CD with Poetry](https://github.com/Anton742-Tu/HabitFlow-API/actions/workflows/ci.yml/badge.svg)](https://github.com/Anton742-Tu/HabitFlow-API/actions/workflows/ci.yml)
-[![Docker Pulls](https://img.shields.io/docker/pulls/anton742-tu/habitflow-api)](https://github.com/anton742-tu/HabitFlow-API/pkgs/container/habitflow-api)
-[![Test Coverage](https://img.shields.io/badge/coverage-96%25-green)](https://github.com/Anton742-Tu/HabitFlow-API/actions)
-
+[![Docker Image](https://img.shields.io/badge/docker-ghcr.io/anton742--tu/habitflow--api-blue)](https://github.com/anton742-tu/HabitFlow-API/pkgs/container/habitflow-api)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 - ✅ **Полностью рабочий CI/CD пайплайн**
 - ✅ **Автоматический деплой на production**
 - ✅ **Docker контейнеризация**
@@ -306,6 +306,21 @@ curl -X POST http://localhost:8000/api/habits/ \
 curl -X GET "http://localhost:8000/api/habits/?page=2&page_size=3" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
+## 🔄 Асинхронные задачи (Celery)
+
+### Сервисы:
+- **Celery Worker** - обработка фоновых задач
+- **Celery Beat** - планировщик периодических задач (использует DatabaseScheduler)
+- **Redis** - брокер сообщений
+
+### Задачи в проекте:
+1. `send_habit_reminders` - напоминания о привычках
+2. `send_daily_summaries` - ежедневные отчёты
+3. `send_weekly_reports` - еженедельные отчёты
+
+### Администрирование:
+- Периодические задачи: http://localhost:8080/admin/django_celery_beat/
+- Статус Celery: `docker-compose exec celery_worker celery -A config status`
 ## Docker Setup для HabitFlow API
 
 ### Настройте окружение для Docker

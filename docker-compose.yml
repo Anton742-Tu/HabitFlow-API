@@ -48,13 +48,13 @@
       PYTHONPATH: /app
       DEBUG: "True"  # временно включите для отладки
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-django-insecure-key}
-      POSTGRES_HOST: localhost
+      POSTGRES_HOST: db
       POSTGRES_DB: habitflow_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      ALLOWED_HOSTS: localhost,127.0.0.1,web,nginx,158.160.207.244
+      ALLOWED_HOSTS: localhost,127.0.0.1,web,nginx,158.160.212.64
     expose:
       - "8000"  # Открываем порт только для других контейнеров
     depends_on:
@@ -73,6 +73,51 @@
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
     depends_on:
+      - web
+    restart: unless-stopped
+  celery_worker:
+    build: .
+    command: celery -A config worker --loglevel=info --concurrency=4
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: habitflow_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings
+    depends_on:
+      - redis
+      - db
+      - web
+    restart: unless-stopped
+
+  celery_beat:
+    build: .
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: habitflow_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings
+    depends_on:
+      - redis
+      - db
       - web
     restart: unless-stopped
 
