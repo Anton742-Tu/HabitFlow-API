@@ -14,14 +14,14 @@ RUN pip install --upgrade pip setuptools
 WORKDIR /app
 
 COPY requirements.txt .
-RUN python -m pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --disable-pip-version-check -r /app/requirements.txt
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
 # Копируем все скрипты
-COPY scripts/ /scripts/
-RUN chmod +x /scripts/*.py
+COPY scripts/ /app/scripts/
+RUN chmod +x /app/scripts/*.py 2>/dev/null || true
 
 # Копируем nginx конфиг
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
